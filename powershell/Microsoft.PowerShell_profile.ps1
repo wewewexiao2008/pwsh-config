@@ -1,0 +1,193 @@
+﻿# ==========================================
+# Linux-like PowerShell + fzf profile
+# interactive use only
+# ==========================================
+
+# ---------- aliases ----------
+Set-Alias vi nvim
+Set-Alias vim nvim
+Set-Alias py python
+Set-Alias g git
+Set-Alias c Clear-Host
+
+# ---------- env ----------
+$env:BAT_THEME = 'TwoDark'
+$env:FZF_DEFAULT_COMMAND = 'fd --type f --hidden --follow --exclude .git'
+$env:FZF_CTRL_T_COMMAND  = $env:FZF_DEFAULT_COMMAND
+$env:FZF_ALT_C_COMMAND   = 'fd --type d --hidden --follow --exclude .git'
+$env:FZF_DEFAULT_OPTS    = '--height 80% --layout=reverse --border --inline-info'
+$git = Get-Command git.exe -ErrorAction SilentlyContinue
+if ($git) {
+    $gitRoot = Split-Path (Split-Path $git.Source)
+    $fileOne = Join-Path $gitRoot 'usr\bin\file.exe'
+    if (Test-Path $fileOne) {
+        $env:YAZI_FILE_ONE = $fileOne
+    }
+}
+
+# ---------- modern ls ----------
+function l   { la @args }
+function ls  { eza --group-directories-first --icons=auto @args }
+function ll  { eza -lh --group-directories-first --icons=auto @args }
+function la  { eza -lah --group-directories-first --icons=auto @args }
+function lt  { eza --tree --level=2 --icons=auto @args }
+Remove-Item Alias:rm -Force -ErrorAction SilentlyContinue
+
+function rm {
+    Write-Host "rm 已保留为提醒。请改用: rip" -ForegroundColor Yellow
+}
+
+# ---------- cat / less ----------
+function cat  { bat --paging=never --style=plain @args }
+function ccat { bat --paging=never @args }
+
+function less {
+    if (Get-Command less.exe -ErrorAction SilentlyContinue) {
+        & less.exe @args
+    } else {
+        Write-Host 'less 未安装，运行: scoop install less' -ForegroundColor Yellow
+    }
+}
+
+# ---------- grep / find ----------
+function grep { rg @args }
+function find { fd @args }
+function ff   { fd @args }
+
+# ---------- helpers ----------
+function which {
+    param([Parameter(Mandatory=$true, ValueFromRemainingArguments=$true)][string[]]$Name)
+    foreach ($n in $Name) {
+        Get-Command $n -ErrorAction SilentlyContinue |
+            Select-Object Name, CommandType, Source
+    }
+}
+
+function touch {
+    param([Parameter(Mandatory=$true, ValueFromRemaining=$true)][string[]]$Path)
+    foreach ($p in $Path) {
+        if (Test-Path $p) {
+            (Get-Item $p).LastWriteTime = Get-Date
+        } else {
+            New-Item -ItemType File -Path $p | Out-Null
+        }
+    }
+}
+
+function pwd { Get-Location }
+function ..   { Set-Location .. }
+function ...  { Set-Location ../.. }
+function .... { Set-Location ../../.. }
+
+function mkdir {
+    param([Parameter(Mandatory=$true, ValueFromRemainingArguments=$true)][string[]]$Path)
+    foreach ($p in $Path) {
+        New-Item -ItemType Directory -Path $p -Force | Out-Null
+    }
+}
+
+function ln {
+    param(
+        [Parameter(Mandatory=$true)][string]$Target,
+        [Parameter(Mandatory=$true)][string]$LinkName
+    )
+    New-Item -ItemType SymbolicLink -Path $LinkName -Target $Target
+}
+
+function __quote_path([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $Path }
+    return "'" + ($Path -replace "'", "''") + "'"
+}
+
+# ---------- fzf helpers ----------
+function __fzf_select_file {
+    if (Get-Command bat -ErrorAction SilentlyContinue) {
+        fd --type f --hidden --follow --exclude .git 2>$null |
+            fzf --prompt 'Files> ' `
+                --preview 'bat --color=always --style=numbers --line-range=:200 {}' `
+                --preview-window 'right,60%,border-left'
+    } else {
+        fd --type f --hidden --follow --exclude .git 2>$null |
+            fzf --prompt 'Files> '
+    }
+}
+
+function __fzf_select_dir {
+    fd --type d --hidden --follow --exclude .git 2>$null |
+        fzf --prompt 'Dirs> '
+}
+
+function __fzf_select_history([string]$Query) {
+    $historyPath = $null
+    try { $historyPath = (Get-PSReadLineOption).HistorySavePath } catch {}
+    if (-not $historyPath -or -not (Test-Path $historyPath)) { return }
+
+    $lines = Get-Content $historyPath
+    [array]::Reverse($lines)
+
+    $seen = @{}
+    $unique = foreach ($cmd in $lines) {
+        if (-not [string]::IsNullOrWhiteSpace($cmd) -and -not $seen.ContainsKey($cmd)) {
+            $seen[$cmd] = $true
+            $cmd
+        }
+    }
+
+    $unique | fzf --prompt 'History> ' --query $Query --tac --no-sort
+}
+
+# ---------- PSReadLine ----------
+if (Get-Module -ListAvailable -Name PSReadLine) {
+    Import-Module PSReadLine -ErrorAction SilentlyContinue
+
+    try {
+        Set-PSReadLineOption -EditMode Emacs
+        Set-PSReadLineOption -BellStyle None
+        Set-PSReadLineOption -HistorySearchCursorMovesToEnd
+        Set-PSReadLineOption -PredictionSource History
+        Set-PSReadLineOption -PredictionViewStyle ListView
+    } catch {}
+
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+r' -BriefDescription 'fzf history' -ScriptBlock {
+        $line = $null
+        $cursor = $null
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+        $selected = __fzf_select_history $line
+        if ($selected) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::Replace(0, $line.Length, $selected)
+        }
+    }
+
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+t' -BriefDescription 'fzf files' -ScriptBlock {
+        $selected = __fzf_select_file
+        if ($selected) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert((__quote_path $selected))
+        }
+    }
+
+    Set-PSReadLineKeyHandler -Chord 'Alt+c' -BriefDescription 'fzf cd' -ScriptBlock {
+        $selected = __fzf_select_dir
+        if ($selected) {
+            $target = __quote_path $selected
+            [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert("cd $target")
+            [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+        }
+    }
+}
+
+# ---------- yazi ----------
+function y {
+    $tmp = [System.IO.Path]::GetTempFileName()
+    yazi $args --cwd-file="$tmp"
+    $cwd = Get-Content -Path $tmp -Encoding UTF8 -Raw
+    if (-not [String]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path) {
+        Set-Location -LiteralPath $cwd
+    }
+    Remove-Item -Path $tmp
+}
+
+# ---------- zoxide ----------
+Invoke-Expression (& { (zoxide init powershell | Out-String) })
+Write-Host 'Linux-like PowerShell + fzf 已加载' -ForegroundColor Green
+Write-Host '快捷键: Ctrl+r 历史搜索 | Ctrl+t 文件插入 | Alt+c 目录跳转' -ForegroundColor DarkGray
