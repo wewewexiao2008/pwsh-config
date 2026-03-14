@@ -8,7 +8,7 @@ Set-Alias vi nvim
 Set-Alias vim nvim
 Set-Alias py python
 Set-Alias g git
-Set-Alias c Clear-Host
+Set-Alias c zoxide
 
 # ---------- env ----------
 $env:BAT_THEME = 'TwoDark'
@@ -188,6 +188,18 @@ function y {
 }
 
 # ---------- zoxide ----------
-Invoke-Expression (& { (zoxide init powershell | Out-String) })
+# 直接从 .shim 文件读取真实 exe 路径，避免 Scoop current junction
+# 异常时 shim 挂起拖死整个 profile 的问题
+$_zExe = $null
+$_zShim = "$HOME\scoop\shims\zoxide.shim"
+if (Test-Path $_zShim) {
+    $_zPath = (Get-Content $_zShim | Where-Object { $_ -match '^path' }) -replace 'path\s*=\s*"?(.+?)"?\s*$', '$1'
+    if ($_zPath -and (Test-Path $_zPath)) { $_zExe = $_zPath }
+}
+if ($_zExe) {
+    Invoke-Expression (& $_zExe init powershell | Out-String)
+}
+Remove-Variable _zExe, _zShim, _zPath -ErrorAction SilentlyContinue
+
 Write-Host 'Linux-like PowerShell + fzf 已加载' -ForegroundColor Green
 Write-Host '快捷键: Ctrl+r 历史搜索 | Ctrl+t 文件插入 | Alt+c 目录跳转' -ForegroundColor DarkGray
