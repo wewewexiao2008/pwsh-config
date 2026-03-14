@@ -11,24 +11,90 @@ function Ensure-ScoopInstalled {
         throw 'Scoop is not installed or not available in PATH.'
     }
 }
+function Get-ScoopConfigPath {
+    return Join-Path $HOME '.config\scoop\config.json'
+}
+
+function Get-ScoopConfigValue {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $configPath = Get-ScoopConfigPath
+    if (-not (Test-Path -LiteralPath $configPath)) {
+        return $null
+    }
+
+    $raw = Get-Content -LiteralPath $configPath -Raw
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return $null
+    }
+
+    $config = $raw | ConvertFrom-Json
+    return $config.$Name
+}
+
+function Install-ScoopManifestWithoutJunction {
+    param([Parameter(Mandatory = $true)][string]$ManifestUrl)
+
+    $configName = 'no_junction'
+    $previousValue = Get-ScoopConfigValue -Name $configName
+    $hadPreviousValue = $null -ne $previousValue
+
+    if (-not $hadPreviousValue -or -not [bool]$previousValue) {
+        scoop config $configName true | Out-Null
+    }
+
+    try {
+        scoop install $ManifestUrl
+    } finally {
+        if (-not $hadPreviousValue) {
+            scoop config rm $configName | Out-Null
+        } elseif (-not [bool]$previousValue) {
+            scoop config $configName $previousValue | Out-Null
+        }
+    }
+}
 
 function Ensure-ScoopPackage {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [string]$Bucket,
+        [string]$FallbackManifestUrl,
         [ValidateSet('Prompt', 'Update', 'Reinstall')]
         [string]$InstalledAction = 'Prompt'
     )
-
-    if ($Bucket) {
-        $bucketInstalled = scoop bucket list | Select-String -Pattern ("(?m)^" + [regex]::Escape($Bucket) + "\s")
-        if (-not $bucketInstalled) {
-            scoop bucket add $Bucket
-        }
-    }
     $installed = scoop list | Select-String -Pattern ("(?m)^" + [regex]::Escape($Name) + "\s")
     if (-not $installed) {
-        scoop install $Name
+        $bucketReady = $true
+        if ($Bucket) {
+            $bucketInstalled = scoop bucket list | Select-String -Pattern ("(?m)^" + [regex]::Escape($Bucket) + "\s")
+            if (-not $bucketInstalled) {
+                try {
+                    scoop bucket add $Bucket
+                } catch {
+                    if (-not $FallbackManifestUrl) {
+                        throw
+                    }
+
+                    Write-Warning "Unable to add Scoop bucket '$Bucket'. Falling back to manifest URL for '$Name'."
+                    $bucketReady = $false
+                }
+            }
+        }
+
+        if ($bucketReady) {
+            try {
+                scoop install $Name
+                return
+            } catch {
+                if (-not $FallbackManifestUrl) {
+                    throw
+                }
+
+                Write-Warning "Unable to install '$Name' from Scoop bucket metadata. Falling back to manifest URL."
+            }
+        }
+
+        Install-ScoopManifestWithoutJunction -ManifestUrl $FallbackManifestUrl
         return
     }
 
@@ -44,11 +110,29 @@ function Ensure-ScoopPackage {
 
     if ($action -eq 'Reinstall') {
         scoop uninstall $Name
-        scoop install $Name
+        try {
+            scoop install $Name
+        } catch {
+            if (-not $FallbackManifestUrl) {
+                throw
+            }
+
+            Write-Warning "Unable to reinstall '$Name' from Scoop bucket metadata. Falling back to manifest URL."
+            Install-ScoopManifestWithoutJunction -ManifestUrl $FallbackManifestUrl
+        }
         return
     }
+    try {
+        scoop update $Name
+    } catch {
+        if (-not $FallbackManifestUrl) {
+            throw
+        }
 
-    scoop update $Name
+        Write-Warning "Unable to update '$Name' from Scoop bucket metadata. Reinstalling from manifest URL."
+        scoop uninstall $Name
+        Install-ScoopManifestWithoutJunction -ManifestUrl $FallbackManifestUrl
+    }
 }
 
 function Remove-ExistingPath {
@@ -114,7 +198,7 @@ foreach ($pkg in $mainPackages) {
     Ensure-ScoopPackage -Name $pkg -InstalledAction $InstalledPackageAction
 }
 
-Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -InstalledAction $InstalledPackageAction
+Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/lazygit.json' -InstalledAction $InstalledPackageAction
 
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'

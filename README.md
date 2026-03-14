@@ -7,11 +7,20 @@ Personal PowerShell-centered terminal configuration for Windows.
 - `scripts/bootstrap.ps1` - installs dependencies and links live paths to this repo
 
 ## Bootstrap
+
+Install Scoop (requires non-admin):
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+```
+
 Run from PowerShell:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
-E:\github\pwsh-config\scripts\bootstrap.ps1
+# in this directory
+.\scripts\bootstrap.ps1
 ```
 
 The bootstrap script installs the required Scoop packages, then links:

@@ -10,6 +10,9 @@ Set-Alias py python
 Set-Alias g git
 Set-Alias c zoxide
 
+function gc   { git clone @args }
+function lg   { lazygit @args }
+
 # ---------- env ----------
 $env:BAT_THEME = 'TwoDark'
 $env:FZF_DEFAULT_COMMAND = 'fd --type f --hidden --follow --exclude .git'
@@ -147,6 +150,9 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
         Set-PSReadLineOption -PredictionSource History
         Set-PSReadLineOption -PredictionViewStyle ListView
     } catch {}
+
+    Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
+    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
 
     Set-PSReadLineKeyHandler -Chord 'Ctrl+LeftArrow'  -Function BackwardWord
     Set-PSReadLineKeyHandler -Chord 'Ctrl+RightArrow' -Function ForwardWord
