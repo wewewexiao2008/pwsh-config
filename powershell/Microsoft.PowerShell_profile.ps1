@@ -201,5 +201,22 @@ if ($_zExe) {
 }
 Remove-Variable _zExe, _zShim, _zPath -ErrorAction SilentlyContinue
 
-Write-Host 'Linux-like PowerShell + fzf 已加载' -ForegroundColor Green
-Write-Host '快捷键: Ctrl+r 历史搜索 | Ctrl+t 文件插入 | Alt+c 目录跳转' -ForegroundColor DarkGray
+# ---------- pixi ----------
+$_pixiCmd = Get-Command pixi -ErrorAction SilentlyContinue
+$_pixiInit = $null
+if ($_pixiCmd) {
+    try {
+        $_pixiInit = (& $_pixiCmd.Source completion --shell powershell | Out-String)
+    } catch {}
+}
+if (-not [string]::IsNullOrWhiteSpace($_pixiInit)) {
+    Invoke-Expression $_pixiInit
+}
+Remove-Variable _pixiCmd, _pixiInit -ErrorAction SilentlyContinue
+
+if ($Host.Name -eq 'ConsoleHost') {
+    Write-Host 'Linux-like PowerShell + fzf loaded' -ForegroundColor Green
+    Write-Host 'Shortcuts: Ctrl+r history | Ctrl+t file | Alt+c cd' -ForegroundColor DarkGray
+} else {
+    Write-Host "Usable commands: rg (ripgrep), fd (find), bat (cat), eza (ls), z (zoxide), fzf (fuzzy finder)" -ForegroundColor Yellow
+}

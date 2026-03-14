@@ -1,5 +1,7 @@
 param(
-    [string]$RepoRoot = (Split-Path $PSScriptRoot -Parent)
+    [string]$RepoRoot = (Split-Path $PSScriptRoot -Parent),
+    [ValidateSet('Prompt', 'Update', 'Reinstall')]
+    [string]$InstalledPackageAction = 'Prompt'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,13 +15,10 @@ function Ensure-ScoopInstalled {
 function Ensure-ScoopPackage {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
-        [string]$Bucket
+        [string]$Bucket,
+        [ValidateSet('Prompt', 'Update', 'Reinstall')]
+        [string]$InstalledAction = 'Prompt'
     )
-
-    $installed = scoop list | Select-String -Pattern ("(?m)^" + [regex]::Escape($Name) + "\s")
-    if ($installed) {
-        return
-    }
 
     if ($Bucket) {
         $bucketInstalled = scoop bucket list | Select-String -Pattern ("(?m)^" + [regex]::Escape($Bucket) + "\s")
@@ -27,8 +26,29 @@ function Ensure-ScoopPackage {
             scoop bucket add $Bucket
         }
     }
+    $installed = scoop list | Select-String -Pattern ("(?m)^" + [regex]::Escape($Name) + "\s")
+    if (-not $installed) {
+        scoop install $Name
+        return
+    }
 
-    scoop install $Name
+    $action = $InstalledAction
+    if ($InstalledAction -eq 'Prompt') {
+        $choice = Read-Host "Package '$Name' is already installed. Choose [U]pdate or [R]einstall (default: U)"
+        if ($choice -match '^(r|reinstall)$') {
+            $action = 'Reinstall'
+        } else {
+            $action = 'Update'
+        }
+    }
+
+    if ($action -eq 'Reinstall') {
+        scoop uninstall $Name
+        scoop install $Name
+        return
+    }
+
+    scoop update $Name
 }
 
 function Remove-ExistingPath {
@@ -80,6 +100,7 @@ $mainPackages = @(
     'jq',
     'less',
     'neovim',
+    'pixi',
     'poppler',
     'resvg',
     'rip',
@@ -90,10 +111,10 @@ $mainPackages = @(
 )
 
 foreach ($pkg in $mainPackages) {
-    Ensure-ScoopPackage -Name $pkg
+    Ensure-ScoopPackage -Name $pkg -InstalledAction $InstalledPackageAction
 }
 
-Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras'
+Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -InstalledAction $InstalledPackageAction
 
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'
