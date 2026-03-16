@@ -225,6 +225,15 @@ if (-not [string]::IsNullOrWhiteSpace($_pixiInit)) {
 }
 Remove-Variable _pixiCmd, _pixiInit -ErrorAction SilentlyContinue
 
+# ---------- uv ----------
+$_uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+if ($_uvCmd) {
+    try {
+        Invoke-Expression (& $_uvCmd.Source generate-shell-completion powershell | Out-String)
+    } catch {}
+}
+Remove-Variable _uvCmd -ErrorAction SilentlyContinue
+
 if ($Host.Name -eq 'ConsoleHost') {
     Write-Host 'Linux-like PowerShell + fzf loaded' -ForegroundColor Green
     Write-Host 'Shortcuts: Ctrl+r history | Ctrl+t file | Alt+c cd' -ForegroundColor DarkGray

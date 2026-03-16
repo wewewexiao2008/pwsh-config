@@ -190,6 +190,7 @@ $mainPackages = @(
     'rip',
     'ripgrep',
     'yazi',
+    'uv',
     'zoxide',
     '7zip'
 )
