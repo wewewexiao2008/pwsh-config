@@ -3,6 +3,12 @@
 # interactive use only
 # ==========================================
 
+# Detect non-interactive shells
+# VSCode, automation scripts, non-UI environments, etc.
+if (-not $Host.UI.RawUI -or $env:VSCODE_PID -or $env:TERM_PROGRAM -eq 'vscode' -or $env:PWSH_CONFIG_QUIET) {
+    $Global:NonInteractiveShell = $true
+}
+
 # Measure startup time
 $Global:ProfileLoadStart = [System.Diagnostics.Stopwatch]::StartNew()
 
@@ -317,6 +323,7 @@ if ($Host.Name -eq 'ConsoleHost') {
         Write-Host "⚠️  Missing tools: $($missingTools -join ', ')" -ForegroundColor Yellow
         Write-Host "   Run: .\scripts\bootstrap.ps1" -ForegroundColor DarkGray
     }
-} else {
-    Write-Host "pwsh-config loaded ($($Global:ProfileLoadTime)ms)" -ForegroundColor Yellow
+} elseif (-not $Global:NonInteractiveShell) {
+    # Non-interactive shell (VSCode, scripts, etc.)
+    Write-Host "pwsh-config loaded ($($Global:ProfileLoadTime)ms)" -ForegroundColor DarkGray
 }
