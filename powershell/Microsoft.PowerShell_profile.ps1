@@ -3,12 +3,16 @@
 # interactive use only
 # ==========================================
 
+# Measure startup time
+$Global:ProfileLoadStart = [System.Diagnostics.Stopwatch]::StartNew()
+
 # ---------- aliases ----------
 Set-Alias vi nvim
 Set-Alias vim nvim
 Set-Alias py python
 Set-Alias g git
 Set-Alias c zoxide
+Set-Alias z zoxide  # Quick directory jump with zoxide
 
 function gc   { git clone @args }
 function lg   { lazygit @args }
@@ -198,6 +202,20 @@ function y {
     Remove-Item -Path $tmp
 }
 
+# ---------- zellij ----------
+function zellij-session {
+    $sessions = zellij list-sessions 2>$null
+    if ($sessions -match 'main') {
+        zellij attach main
+    } else {
+        zellij attach -c main
+    }
+}
+
+# Common aliases
+Set-Alias zs zellij-session  # Quick zellij access
+Set-Alias zj zellij           # Alternative zellij alias
+
 # ---------- zoxide ----------
 # 直接从 .shim 文件读取真实 exe 路径，避免 Scoop current junction
 # 异常时 shim 挂起拖死整个 profile 的问题
@@ -213,30 +231,92 @@ if ($_zExe) {
 Remove-Variable _zExe, _zShim, _zPath -ErrorAction SilentlyContinue
 
 # ---------- pixi ----------
-$_pixiCmd = Get-Command pixi -ErrorAction SilentlyContinue
-$_pixiInit = $null
-if ($_pixiCmd) {
-    try {
-        $_pixiInit = (& $_pixiCmd.Source completion --shell powershell | Out-String)
-    } catch {}
+Register-ArgumentCompleter -CommandName pixi -ScriptBlock {
+    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameter)
+    # Lazy init on first use
+    if (-not $Global:PixiCompletionLoaded) {
+        $_pixiCmd = Get-Command pixi -ErrorAction SilentlyContinue
+        if ($_pixiCmd) {
+            try {
+                Invoke-Expression (& $_pixiCmd.Source completion --shell powershell | Out-String)
+                $Global:PixiCompletionLoaded = $true
+            } catch {
+                Write-Warning "Failed to load pixi completion: $_"
+            }
+        }
+    }
 }
-if (-not [string]::IsNullOrWhiteSpace($_pixiInit)) {
-    Invoke-Expression $_pixiInit
-}
-Remove-Variable _pixiCmd, _pixiInit -ErrorAction SilentlyContinue
 
 # ---------- uv ----------
-$_uvCmd = Get-Command uv -ErrorAction SilentlyContinue
-if ($_uvCmd) {
-    try {
-        Invoke-Expression (& $_uvCmd.Source generate-shell-completion powershell | Out-String)
-    } catch {}
+Register-ArgumentCompleter -CommandName uv -ScriptBlock {
+    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameter)
+    # Lazy init on first use
+    if (-not $Global:UvCompletionLoaded) {
+        $_uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+        if ($_uvCmd) {
+            try {
+                Invoke-Expression (& $_uvCmd.Source generate-shell-completion powershell | Out-String)
+                $Global:UvCompletionLoaded = $true
+            } catch {
+                Write-Warning "Failed to load uv completion: $_"
+            }
+        }
+    }
 }
-Remove-Variable _uvCmd -ErrorAction SilentlyContinue
 
+# ---------- startup checks ----------
+$missingTools = @('zellij', 'bun', 'claude') | Where-Object {
+    -not (Get-Command $_ -ErrorAction SilentlyContinue)
+}
+# Stop startup timer
+$Global:ProfileLoadStart.Stop()
+$Global:ProfileLoadTime = [math]::Round($Global:ProfileLoadStart.ElapsedMilliseconds, 0)
+
+# Check for missing tools
+$missingTools = @('zellij', 'bun', 'claude') | Where-Object {
+    -not (Get-Command $_ -ErrorAction SilentlyContinue)
+}
+
+# ---------- startup display ----------
 if ($Host.Name -eq 'ConsoleHost') {
-    Write-Host 'Linux-like PowerShell + fzf loaded' -ForegroundColor Green
-    Write-Host 'Shortcuts: Ctrl+r history | Ctrl+t file | Alt+c cd' -ForegroundColor DarkGray
+    Write-Host "🚀 pwsh-config loaded ($($Global:ProfileLoadTime)ms)" -ForegroundColor Green
+    Write-Host "Shortcuts: z(dir) | Ctrl+r history | Ctrl+t file | Alt+c cd" -ForegroundColor DarkGray
+
+    # Git branch info
+    $gitBranch = $null
+    try {
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            $gitBranch = git rev-parse --abbrev-ref HEAD 2>$null
+        }
+    } catch {}
+
+    if ($gitBranch) {
+        Write-Host "📂 Git: $gitBranch branch" -ForegroundColor Magenta
+    }
+
+    # Zellij sessions info
+    $zellijSessions = $null
+    try {
+        if (Get-Command zellij -ErrorAction SilentlyContinue) {
+            $zellijSessions = zellij list-sessions 2>$null
+        }
+    } catch {}
+
+    if ($zellijSessions) {
+        $sessionCount = ($zellijSessions | Measure-Object).Count
+        Write-Host "💡 $sessionCount active zellij session(s) - use 'zj' or 'zs'" -ForegroundColor Cyan
+    }
+
+    # Performance info
+    if ($Global:ProfileLoadTime -lt 100) {
+        Write-Host "⚡ Fast startup (<100ms)" -ForegroundColor Green
+    }
+
+    # Missing tools warning
+    if ($missingTools) {
+        Write-Host "⚠️  Missing tools: $($missingTools -join ', ')" -ForegroundColor Yellow
+        Write-Host "   Run: .\scripts\bootstrap.ps1" -ForegroundColor DarkGray
+    }
 } else {
-    Write-Host "Usable commands: rg (ripgrep), fd (find), bat (cat), eza (ls), z (zoxide), fzf (fuzzy finder)" -ForegroundColor Yellow
+    Write-Host "pwsh-config loaded ($($Global:ProfileLoadTime)ms)" -ForegroundColor Yellow
 }

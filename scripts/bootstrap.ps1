@@ -172,10 +172,26 @@ function New-ProfileLink {
     }
 }
 
+function New-ZellijConfigLink {
+    param(
+        [Parameter(Mandatory = $true)][string]$LinkPath,
+        [Parameter(Mandatory = $true)][string]$TargetPath
+    )
+
+    Remove-ExistingPath $LinkPath
+    try {
+        New-Item -ItemType SymbolicLink -Path $LinkPath -Target $TargetPath | Out-Null
+    } catch {
+        # For zellij config, copy the actual content instead of sourcing
+        Copy-Item -Path $TargetPath -Destination $LinkPath -Force
+    }
+}
+
 Ensure-ScoopInstalled
 
 $mainPackages = @(
     'bat',
+    'bun',
     'eza',
     'fd',
     'ffmpeg',
@@ -191,27 +207,100 @@ $mainPackages = @(
     'ripgrep',
     'yazi',
     'uv',
+    'zellij',
     'zoxide',
     '7zip'
 )
 
-foreach ($pkg in $mainPackages) {
-    Ensure-ScoopPackage -Name $pkg -InstalledAction $InstalledPackageAction
+# Get all installed packages at once for batch processing
+$installedOutput = scoop list 2>$null
+$installedSet = @{}
+if ($installedOutput) {
+    $installedOutput | ForEach-Object {
+        if ($_ -match '^(\S+)') {
+            $installedSet[$matches[1]] = $true
+        }
+    }
 }
 
+# Separate packages by installation status
+$notInstalled = $mainPackages | Where-Object { -not $installedSet.ContainsKey($_) }
+$alreadyInstalled = $mainPackages | Where-Object { $installedSet.ContainsKey($_) }
+
+# Batch install uninstalled packages
+if ($notInstalled.Count -gt 0) {
+    Write-Host "Installing $($notInstalled.Count) packages: $($notInstalled -join ', ')" -ForegroundColor Cyan
+    scoop install @notInstalled
+}
+
+# Handle already installed packages based on action
+if ($alreadyInstalled.Count -gt 0) {
+    if ($InstalledPackageAction -eq 'Update') {
+        Write-Host "Updating $($alreadyInstalled.Count) packages" -ForegroundColor Cyan
+        scoop update @alreadyInstalled
+    } elseif ($InstalledPackageAction -eq 'Reinstall') {
+        foreach ($pkg in $alreadyInstalled) {
+            $choice = Read-Host "Reinstall '$pkg'? [Y/n]"
+            if ($choice -notmatch '^n') {
+                scoop uninstall $pkg
+                scoop install $pkg
+            }
+        }
+    } else {
+        Write-Host "Packages already installed. Use -Update or -Reinstall to update them." -ForegroundColor Yellow
+    }
+}
+
+# Handle lazygit separately (from extras bucket)
 Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/lazygit.json' -InstalledAction $InstalledPackageAction
+
+# Install Bun tools (opencode-ai, qodercli, codex)
+if (Get-Command bun -ErrorAction SilentlyContinue) {
+    Write-Host "Installing Bun tools: opencode-ai, qodercli, codex" -ForegroundColor Cyan
+    try {
+        bun add -g opencode-ai
+        # Use npm for qodercli due to Windows compatibility issues
+        if (Get-Command npm -ErrorAction SilentlyContinue) {
+            try {
+                npm install -g @qoder-ai/qodercli
+            } catch {
+                Write-Warning "qodercli installation via npm failed. Skipping."
+            }
+        }
+        bun add -g @openai/codex
+    } catch {
+        Write-Warning "Failed to install Bun tools: $_"
+    }
+} else {
+    Write-Warning "Bun not found. Skipping opencode-ai, qodercli and codex installation."
+}
+
+# Install/update Claude Code
+Write-Host "Installing/updating Claude Code..." -ForegroundColor Cyan
+try {
+    irm https://claude.ai/install.ps1 | iex
+} catch {
+    Write-Warning "Claude Code installation failed: $_"
+}
 
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'
+$zellijSource = Join-Path $RepoRoot 'zellij\config.kdl'
 
-$profileTarget = Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
+$profileTarget5 = Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
+$profileTarget7 = Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
 $yaziTarget = Join-Path $env:APPDATA 'yazi\config'
+$zellijTarget = Join-Path $env:APPDATA 'Zellij\config\config.kdl'
 
-New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget -Parent) | Out-Null
+New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget5 -Parent) | Out-Null
+New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget7 -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $yaziTarget -Parent) | Out-Null
+New-Item -ItemType Directory -Force -Path (Split-Path $zellijTarget -Parent) | Out-Null
 
-New-ProfileLink -LinkPath $profileTarget -TargetPath $profileSource
+New-ProfileLink -LinkPath $profileTarget5 -TargetPath $profileSource
+New-ProfileLink -LinkPath $profileTarget7 -TargetPath $profileSource
 New-DirectoryLink -LinkPath $yaziTarget -TargetPath $yaziSource
+New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
 
 Write-Host 'pwsh-config bootstrap complete.' -ForegroundColor Green
 Write-Host 'Restart PowerShell to load the migrated profile.' -ForegroundColor DarkGray
