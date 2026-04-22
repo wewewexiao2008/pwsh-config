@@ -254,6 +254,42 @@ if ($alreadyInstalled.Count -gt 0) {
 # Handle lazygit separately (from extras bucket)
 Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/lazygit.json' -InstalledAction $InstalledPackageAction
 
+# ---------- Fonts ----------
+$fontPackages = @(
+    'JetBrainsMono-NF-CN',
+    'Hack-NF-CN',
+    '0xProto-NF-CN',
+    'FiraCode-NF-CN',
+    'Maple-Mono-NF-CN'
+)
+
+$nerdFontsBucket = scoop bucket list | Select-String -Pattern '(?m)^nerd-fonts\s'
+if (-not $nerdFontsBucket) {
+    Write-Host "Adding nerd-fonts bucket..." -ForegroundColor Cyan
+    scoop bucket add nerd-fonts
+}
+
+$installedFonts = @{}
+scoop list 2>$null | ForEach-Object { if ($_ -match '^(\S+)') { $installedFonts[$matches[1]] = $true } }
+
+$fontsToInstall = $fontPackages | Where-Object { -not $installedFonts.ContainsKey($_) }
+$fontsInstalled = $fontPackages | Where-Object { $installedFonts.ContainsKey($_) }
+
+if ($fontsToInstall.Count -gt 0) {
+    Write-Host "Installing fonts: $($fontsToInstall -join ', ')" -ForegroundColor Cyan
+    scoop install @fontsToInstall
+}
+if ($fontsInstalled.Count -gt 0) {
+    if ($InstalledPackageAction -eq 'Update') {
+        scoop update @fontsInstalled
+    } elseif ($InstalledPackageAction -eq 'Reinstall') {
+        scoop uninstall @fontsInstalled
+        scoop install @fontsInstalled
+    } else {
+        Write-Host "Fonts already installed: $($fontsInstalled -join ', ')" -ForegroundColor Yellow
+    }
+}
+
 # Install Bun tools (opencode-ai, qodercli, codex)
 if (Get-Command bun -ErrorAction SilentlyContinue) {
     Write-Host "Installing Bun tools: opencode-ai, qodercli, codex" -ForegroundColor Cyan
