@@ -319,6 +319,74 @@ try {
     Write-Warning "Claude Code installation failed: $_"
 }
 
+# ---------- Rust (via rustup) ----------
+function Ensure-Rustup {
+    if (Get-Command cargo -ErrorAction SilentlyContinue) {
+        Write-Host "Rust toolchain already installed ($(cargo --version))." -ForegroundColor DarkGray
+        return
+    }
+
+    Write-Host 'Installing Rust toolchain via rustup...' -ForegroundColor Cyan
+    $installer = Join-Path $env:TEMP 'rustup-init.exe'
+    Invoke-WebRequest -Uri 'https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe' -OutFile $installer -UseBasicParsing
+    & $installer -y --default-toolchain stable
+    Remove-Item $installer -Force -ErrorAction SilentlyContinue
+
+    # Add cargo bin to current session PATH so subsequent steps can find it
+    $cargobin = Join-Path $HOME '.cargo\bin'
+    if (Test-Path $cargobin) {
+        $env:PATH = "$cargobin;$env:PATH"
+    }
+}
+
+Ensure-Rustup
+
+# ---------- Visual Studio Build Tools (via vs_BuildTools.exe) ----------
+function Ensure-VsBuildTools {
+    $installerDir = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
+    $vsWhere = Join-Path $installerDir 'vswhere.exe'
+
+    if ((Test-Path $vsWhere) -and (& $vsWhere -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Workload.VCTools -property installationPath)) {
+        Write-Host 'Visual Studio Build Tools (C++) already installed.' -ForegroundColor DarkGray
+        return
+    }
+
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Host 'VS Build Tools requires admin. Elevating...' -ForegroundColor Cyan
+        $scriptBlock = @'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$installer = Join-Path $env:TEMP 'vs_BuildTools.exe'
+(New-Object Net.WebClient).DownloadFile('https://aka.ms/vs/17/release/vs_BuildTools.exe', $installer)
+& $installer --quiet --wait --norestart --force --includeRecommended `
+    --add Microsoft.VisualStudio.Workload.VCTools `
+    --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+    --add Microsoft.VisualStudio.Component.Windows11SDK.26100 `
+    --add Microsoft.VisualStudio.Component.VC.CMake.Project
+Remove-Item $installer -Force -ErrorAction SilentlyContinue
+'@
+        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($scriptBlock))
+        $proc = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList "-NoProfile -EncodedCommand $encoded"
+        if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
+            Write-Warning "VS Build Tools installation exited with code $($proc.ExitCode)."
+        }
+        return
+    }
+
+    Write-Host 'Installing Visual Studio Build Tools 2022 (C++ workload)...' -ForegroundColor Cyan
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $installer = Join-Path $env:TEMP 'vs_BuildTools.exe'
+    (New-Object Net.WebClient).DownloadFile('https://aka.ms/vs/17/release/vs_BuildTools.exe', $installer)
+    & $installer --quiet --wait --norestart --force --includeRecommended `
+        --add Microsoft.VisualStudio.Workload.VCTools `
+        --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+        --add Microsoft.VisualStudio.Component.Windows11SDK.26100 `
+        --add Microsoft.VisualStudio.Component.VC.CMake.Project
+    Remove-Item $installer -Force -ErrorAction SilentlyContinue
+}
+
+Ensure-VsBuildTools
+
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'
 $zellijSource = Join-Path $RepoRoot 'zellij\config.kdl'

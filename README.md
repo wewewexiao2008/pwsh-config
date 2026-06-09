@@ -82,6 +82,24 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Reinstall
       <td><a href="https://github.com/PowerShell/PSReadLine">GitHub</a></td>
     </tr>
     <tr>
+      <td colspan="3" align="center"><strong>Development Toolchains</strong></td>
+    </tr>
+    <tr>
+      <td>rust</td>
+      <td>Rust toolchain via <code>rustup</code>; provides <code>cargo</code>, <code>rustc</code>, and <code>rustup</code>.</td>
+      <td><a href="https://rustup.rs/">rustup.rs</a></td>
+    </tr>
+    <tr>
+      <td>uv</td>
+      <td>Fast Python package manager and resolver.</td>
+      <td><a href="https://github.com/astral-sh/uv">GitHub</a></td>
+    </tr>
+    <tr>
+      <td>VS Build Tools 2022</td>
+      <td>C++ build tools via <code>winget</code>; provides MSVC, Windows SDK, and CMake.</td>
+      <td><a href="https://visualstudio.microsoft.com/visual-cpp-build-tools/">Microsoft</a></td>
+    </tr>
+    <tr>
       <td colspan="3" align="center"><strong>File Manager / UI</strong></td>
     </tr>
     <tr>
