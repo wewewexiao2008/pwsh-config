@@ -1,0 +1,11 @@
+{
+  "runtime": {
+    "version": "Lua 5.4"
+  },
+  "workspace": {
+    "checkThirdParty": false,
+    "library": [
+      "C:/Users/a2895/github/wezterm-types/lua"
+    ]
+  }
+}

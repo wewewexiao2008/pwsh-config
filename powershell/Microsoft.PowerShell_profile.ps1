@@ -18,7 +18,9 @@ Set-Alias vim nvim
 Set-Alias py python
 Set-Alias g git
 Set-Alias c zoxide
-Set-Alias z zoxide  # Quick directory jump with zoxide
+if (-not (Get-Alias z -ErrorAction Ignore)) {
+    Set-Alias z zoxide  # Quick directory jump with zoxide
+}
 
 function gc   { git clone @args }
 function lg   { lazygit @args }
@@ -235,6 +237,35 @@ if ($_zExe) {
     Invoke-Expression (& $_zExe init powershell | Out-String)
 }
 Remove-Variable _zExe, _zShim, _zPath -ErrorAction SilentlyContinue
+
+if (-not $Global:PwshConfigWezTermPromptInstalled) {
+    $Global:PwshConfigWezTermPromptPrevious = $function:prompt
+    $Global:PwshConfigWezTermExecutable = $env:WEZTERM_EXECUTABLE
+    if (-not $Global:PwshConfigWezTermExecutable) {
+        $_weztermCommand = Get-Command wezterm.exe -ErrorAction SilentlyContinue
+        if ($_weztermCommand) { $Global:PwshConfigWezTermExecutable = $_weztermCommand.Source }
+        Remove-Variable _weztermCommand -ErrorAction SilentlyContinue
+    }
+
+    function global:__pwsh_config_emit_wezterm_cwd {
+        if (-not $env:WEZTERM_PANE -or -not $Global:PwshConfigWezTermExecutable) { return }
+        $location = Get-Location
+        if ($location.Provider.Name -ne 'FileSystem') { return }
+        $path = $location.ProviderPath
+        if ($path -eq $Global:PwshConfigWezTermLastCwd) { return }
+        & $Global:PwshConfigWezTermExecutable set-working-directory 2>$null
+        if ($LASTEXITCODE -eq 0) { $Global:PwshConfigWezTermLastCwd = $path }
+    }
+
+    function global:prompt {
+        __pwsh_config_emit_wezterm_cwd
+        if ($null -ne $Global:PwshConfigWezTermPromptPrevious) {
+            & $Global:PwshConfigWezTermPromptPrevious
+        }
+    }
+
+    $Global:PwshConfigWezTermPromptInstalled = $true
+}
 
 # ---------- pixi ----------
 Register-ArgumentCompleter -CommandName pixi -ScriptBlock {
