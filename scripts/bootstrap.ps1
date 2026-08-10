@@ -1,7 +1,8 @@
 param(
     [string]$RepoRoot = (Split-Path $PSScriptRoot -Parent),
     [ValidateSet('Prompt', 'Update', 'Reinstall')]
-    [string]$InstalledPackageAction = 'Prompt'
+    [string]$InstalledPackageAction = 'Prompt',
+    [switch]$InstallDevelopmentToolchain
 )
 
 $ErrorActionPreference = 'Stop'
@@ -172,6 +173,29 @@ function New-ProfileLink {
     }
 }
 
+function New-WezTermConfigLink {
+    param(
+        [Parameter(Mandatory = $true)][string]$LinkPath,
+        [Parameter(Mandatory = $true)][string]$TargetPath
+    )
+
+    Remove-ExistingPath $LinkPath
+    try {
+        New-Item -ItemType SymbolicLink -Path $LinkPath -Target $TargetPath | Out-Null
+    } catch {
+        $escaped = $TargetPath.Replace('\', '/').Replace("'", "\'")
+        $loader = @(
+            "local wezterm = require 'wezterm'"
+            "local config_path = '$escaped'"
+            ''
+            'wezterm.add_to_config_reload_watch_list(config_path)'
+            ''
+            'return dofile(config_path)'
+        )
+        Set-Content -Path $LinkPath -Encoding utf8 -Value $loader
+    }
+}
+
 function New-ZellijConfigLink {
     param(
         [Parameter(Mandatory = $true)][string]$LinkPath,
@@ -257,9 +281,6 @@ Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https
 # ---------- Fonts ----------
 $fontPackages = @(
     'JetBrainsMono-NF-CN',
-    'Hack-NF-CN',
-    '0xProto-NF-CN',
-    'FiraCode-NF-CN',
     'Maple-Mono-NF-CN'
 )
 
@@ -311,12 +332,20 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
     Write-Warning "Bun not found. Skipping opencode-ai, qodercli and codex installation."
 }
 
-# Install/update Claude Code
+# Install/update Claude Code (official WinGet package)
 Write-Host "Installing/updating Claude Code..." -ForegroundColor Cyan
-try {
-    irm https://claude.ai/install.ps1 | iex
-} catch {
-    Write-Warning "Claude Code installation failed: $_"
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Warning 'winget not found. Skipping Claude Code installation.'
+} else {
+    $claudeInstalled = winget list --id Anthropic.ClaudeCode -e --source winget 2>$null | Select-String -Pattern 'Anthropic\.ClaudeCode'
+    if ($claudeInstalled) {
+        winget upgrade --id Anthropic.ClaudeCode -e --accept-source-agreements --accept-package-agreements
+    } else {
+        winget install --id Anthropic.ClaudeCode -e --accept-source-agreements --accept-package-agreements
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Claude Code installation exited with code $LASTEXITCODE."
+    }
 }
 
 # ---------- Rust (via rustup) ----------
@@ -338,8 +367,6 @@ function Ensure-Rustup {
         $env:PATH = "$cargobin;$env:PATH"
     }
 }
-
-Ensure-Rustup
 
 # ---------- Visual Studio Build Tools (via vs_BuildTools.exe) ----------
 function Ensure-VsBuildTools {
@@ -385,14 +412,21 @@ Remove-Item $installer -Force -ErrorAction SilentlyContinue
     Remove-Item $installer -Force -ErrorAction SilentlyContinue
 }
 
-Ensure-VsBuildTools
+if ($InstallDevelopmentToolchain) {
+    Ensure-Rustup
+    Ensure-VsBuildTools
+} else {
+    Write-Host 'Skipping optional Rust and Visual Studio Build Tools. Use -InstallDevelopmentToolchain to install them.' -ForegroundColor DarkGray
+}
 
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
+$weztermSource = Join-Path $RepoRoot 'wezterm\wezterm.lua'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'
 $zellijSource = Join-Path $RepoRoot 'zellij\config.kdl'
 
 $profileTarget5 = Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
 $profileTarget7 = Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
+$weztermTarget = Join-Path $HOME '.wezterm.lua'
 $yaziTarget = Join-Path $env:APPDATA 'yazi\config'
 $zellijTarget = Join-Path $env:APPDATA 'Zellij\config\config.kdl'
 
@@ -403,6 +437,7 @@ New-Item -ItemType Directory -Force -Path (Split-Path $zellijTarget -Parent) | O
 
 New-ProfileLink -LinkPath $profileTarget5 -TargetPath $profileSource
 New-ProfileLink -LinkPath $profileTarget7 -TargetPath $profileSource
+New-WezTermConfigLink -LinkPath $weztermTarget -TargetPath $weztermSource
 New-DirectoryLink -LinkPath $yaziTarget -TargetPath $yaziSource
 New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
 

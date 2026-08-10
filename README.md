@@ -3,6 +3,7 @@ Personal PowerShell-centered terminal configuration for Windows.
 
 ## Structure
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
+- `wezterm/wezterm.lua` - WezTerm configuration
 - `yazi/config/` - Yazi configuration, plugins, and flavors
 - `scripts/bootstrap.ps1` - installs dependencies and links live paths to this repo
 
@@ -26,7 +27,9 @@ Set-ExecutionPolicy -Scope Process Bypass
 The bootstrap script installs the required Scoop packages, then links:
 
 - `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
+- `~/.wezterm.lua`
 - `%AppData%/yazi/config`
+- `%AppData%/Zellij/config/config.kdl`
 
 back to this repository.
 
@@ -35,11 +38,14 @@ If a package is already installed, bootstrap can:
 - force update all installed packages: `-InstalledPackageAction Update`
 - force reinstall all installed packages: `-InstalledPackageAction Reinstall`
 
+Rust and Visual Studio Build Tools are optional because they are large downloads and the latter requires administrator access. Install them explicitly with `-InstallDevelopmentToolchain`.
+
 Examples:
 ```powershell
 E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Prompt
 E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Update
 E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Reinstall
+E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
 ```
 
 ## Tools
@@ -95,8 +101,8 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Reinstall
       <td><a href="https://github.com/astral-sh/uv">GitHub</a></td>
     </tr>
     <tr>
-      <td>VS Build Tools 2022</td>
-      <td>C++ build tools via <code>winget</code>; provides MSVC, Windows SDK, and CMake.</td>
+      <td>VS Build Tools 2022 (optional)</td>
+      <td>C++ build tools via the Visual Studio installer; provides MSVC, Windows SDK, and CMake.</td>
       <td><a href="https://visualstudio.microsoft.com/visual-cpp-build-tools/">Microsoft</a></td>
     </tr>
     <tr>
@@ -225,6 +231,36 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Reinstall
     </tr>
   </thead>
   <tbody>
+    <tr>
+      <td>WezTerm</td>
+      <td><code>Alt+t</code> / <code>Alt+w</code></td>
+      <td>Open / close tab</td>
+    </tr>
+    <tr>
+      <td>WezTerm</td>
+      <td><code>Alt+'</code> / <code>Alt+"</code></td>
+      <td>Split pane vertically / horizontally</td>
+    </tr>
+    <tr>
+      <td>WezTerm</td>
+      <td><code>Alt+LeftArrow</code> / <code>Alt+RightArrow</code></td>
+      <td>Activate previous / next tab</td>
+    </tr>
+    <tr>
+      <td>WezTerm</td>
+      <td><code>Alt+Shift+Arrow</code></td>
+      <td>Activate pane by direction</td>
+    </tr>
+    <tr>
+      <td>WezTerm</td>
+      <td><code>Alt+v</code></td>
+      <td>Paste text from the Windows clipboard</td>
+    </tr>
+    <tr>
+      <td>WezTerm</td>
+      <td><code>Alt+Backspace</code></td>
+      <td>Clear the current input using Ctrl+a then Ctrl+k</td>
+    </tr>
     <tr>
       <td>Shell</td>
       <td><code>Ctrl+r</code></td>

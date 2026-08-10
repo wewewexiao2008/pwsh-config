@@ -19,6 +19,7 @@ Bootstrap script behaviors:
 - **Prompt** (default): Interactively prompt for each already-installed package
 - **Update**: Force update all installed packages
 - **Reinstall**: Force reinstall all installed packages
+- **Development toolchain**: Rust and Visual Studio Build Tools are installed only with `-InstallDevelopmentToolchain`
 
 Example: `.\scripts\bootstrap.ps1 -InstalledPackageAction Update`
 
@@ -28,6 +29,7 @@ Example: `.\scripts\bootstrap.ps1 -InstalledPackageAction Update`
 
 The bootstrap script creates symlinks from user config directories back to this repo:
 - PowerShell profile: `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` → `powershell/Microsoft.PowerShell_profile.ps1`
+- WezTerm config: `~/.wezterm.lua` → `wezterm/wezterm.lua`
 - Yazi config: `%AppData%/yazi/config` → `yazi/config/`
 - Zellij config: `%AppData%/Zellij/config/config.kdl` → `zellij/config.kdl`
 
@@ -79,4 +81,4 @@ Extras: lazygit
 
 Bun tools (installed after bun): opencode-ai, qodercli, @openai/codex
 
-Claude Code: Installed via `irm https://claude.ai/install.ps1 | iex`
+Claude Code: Installed/upgraded via WinGet (`Anthropic.ClaudeCode`)
