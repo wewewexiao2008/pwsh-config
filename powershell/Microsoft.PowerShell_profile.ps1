@@ -17,13 +17,11 @@ Set-Alias vi nvim
 Set-Alias vim nvim
 Set-Alias py python
 Set-Alias g git
-Set-Alias c zoxide
-if (-not (Get-Alias z -ErrorAction Ignore)) {
-    Set-Alias z zoxide  # Quick directory jump with zoxide
-}
+# zoxide init (below) provides the real `z` / `zi` commands
 
-function gc   { git clone @args }
-function lg   { lazygit @args }
+Remove-Item Alias:gc -Force -ErrorAction SilentlyContinue
+function gcl { git clone @args }
+function lg  { lazygit @args }
 
 # ---------- env ----------
 $env:BAT_THEME = 'TwoDark'
@@ -224,6 +222,23 @@ function zellij-session {
 Set-Alias zs zellij-session  # Quick zellij access
 Set-Alias zj zellij           # Alternative zellij alias
 
+# Lazy PowerShell completion for zellij
+Register-ArgumentCompleter -CommandName zellij -ScriptBlock {
+    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameter)
+    if (-not $Global:ZellijCompletionLoaded) {
+        $_zjCmd = Get-Command zellij -ErrorAction SilentlyContinue
+        if ($_zjCmd) {
+            try {
+                Invoke-Expression (& $_zjCmd.Source setup --generate-completion powershell | Out-String)
+                $Global:ZellijCompletionLoaded = $true
+            } catch {
+                Write-Warning "Failed to load zellij completion: $_"
+            }
+        }
+        Remove-Variable _zjCmd -ErrorAction SilentlyContinue
+    }
+}
+
 # ---------- zoxide ----------
 # 直接从 .shim 文件读取真实 exe 路径，避免 Scoop current junction
 # 异常时 shim 挂起拖死整个 profile 的问题
@@ -301,17 +316,36 @@ Register-ArgumentCompleter -CommandName uv -ScriptBlock {
     }
 }
 
-# ---------- startup checks ----------
-$missingTools = @('zellij', 'bun', 'claude') | Where-Object {
-    -not (Get-Command $_ -ErrorAction SilentlyContinue)
-}
 # Stop startup timer
 $Global:ProfileLoadStart.Stop()
 $Global:ProfileLoadTime = [math]::Round($Global:ProfileLoadStart.ElapsedMilliseconds, 0)
 
+# Some hosts (e.g. Cursor agent PS 5.1) load $PROFILE before User PATH is fully
+# merged — Get-Command alone then false-negatives winget shims under WinGet\Links.
+$_pwshConfigWinGetLinks = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links'
+if ((Test-Path -LiteralPath $_pwshConfigWinGetLinks) -and
+    -not (($env:PATH -split ';') -contains $_pwshConfigWinGetLinks)) {
+    $env:PATH = "$_pwshConfigWinGetLinks;$env:PATH"
+}
+Remove-Variable _pwshConfigWinGetLinks -ErrorAction SilentlyContinue
+
+function Test-PwshConfigToolPresent {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    if (Get-Command $Name -ErrorAction SilentlyContinue) { return $true }
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\$Name.exe"),
+        (Join-Path $env:USERPROFILE "scoop\shims\$Name.exe"),
+        (Join-Path $env:USERPROFILE "scoop\apps\$Name\current\$Name.exe")
+    )
+    foreach ($path in $candidates) {
+        if (Test-Path -LiteralPath $path) { return $true }
+    }
+    return $false
+}
+
 # Check for missing tools
-$missingTools = @('zellij', 'bun', 'claude') | Where-Object {
-    -not (Get-Command $_ -ErrorAction SilentlyContinue)
+$missingTools = @('pwsh', 'zellij', 'bun', 'claude') | Where-Object {
+    -not (Test-PwshConfigToolPresent $_)
 }
 
 # ---------- startup display ----------
