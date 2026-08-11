@@ -25,10 +25,11 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\bootstrap.ps1
 ```
 
-The bootstrap script installs the required Scoop packages, then links:
+The bootstrap script updates Scoop buckets, installs the required packages (including PowerShell 7 via `pwsh`, `zellij` from Scoop main, and `wezterm-nightly` from the Scoop `versions` bucket), then links:
 
 - `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
-- `~/.wezterm.lua`
+- `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` (PowerShell 7)
+- `~/.wezterm.lua` (takes precedence over `~/.config/wezterm/wezterm.lua`)
 - `%LocalAppData%/nvim`
 - `%AppData%/yazi/config`
 - `%AppData%/Zellij/config/config.kdl`
@@ -36,9 +37,11 @@ The bootstrap script installs the required Scoop packages, then links:
 back to this repository.
 
 If a package is already installed, bootstrap can:
-- prompt you per package (default): `-InstalledPackageAction Prompt`
+- skip updates and print a reminder (default): `-InstalledPackageAction Prompt`
 - force update all installed packages: `-InstalledPackageAction Update`
 - force reinstall all installed packages: `-InstalledPackageAction Reinstall`
+
+`extras` packages (`lazygit`, `neovide`) and `versions` package (`wezterm-nightly`) still use per-package Prompt / Update / Reinstall via `Ensure-ScoopPackage`.
 
 Rust and Visual Studio Build Tools are optional because they are large downloads and the latter requires administrator access. Install them explicitly with `-InstallDevelopmentToolchain`.
 
