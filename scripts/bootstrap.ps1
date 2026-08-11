@@ -238,6 +238,9 @@ function New-ZellijConfigLink {
 
 Ensure-ScoopInstalled
 
+Write-Host 'Updating Scoop buckets...' -ForegroundColor Cyan
+scoop update | Out-Null
+
 $mainPackages = @(
     'bat',
     'bun',
@@ -252,6 +255,7 @@ $mainPackages = @(
     'neovim',
     'pixi',
     'poppler',
+    'pwsh',
     'resvg',
     'rip',
     'ripgrep',
@@ -274,8 +278,8 @@ if ($installedOutput) {
 }
 
 # Separate packages by installation status
-$notInstalled = $mainPackages | Where-Object { -not $installedSet.ContainsKey($_) }
-$alreadyInstalled = $mainPackages | Where-Object { $installedSet.ContainsKey($_) }
+$notInstalled = @($mainPackages | Where-Object { -not $installedSet.ContainsKey($_) })
+$alreadyInstalled = @($mainPackages | Where-Object { $installedSet.ContainsKey($_) })
 
 # Batch install uninstalled packages
 if ($notInstalled.Count -gt 0) {
@@ -290,20 +294,31 @@ if ($alreadyInstalled.Count -gt 0) {
         scoop update @alreadyInstalled
     } elseif ($InstalledPackageAction -eq 'Reinstall') {
         foreach ($pkg in $alreadyInstalled) {
-            $choice = Read-Host "Reinstall '$pkg'? [Y/n]"
-            if ($choice -notmatch '^n') {
-                scoop uninstall $pkg
-                scoop install $pkg
-            }
+            Write-Host "Reinstalling '$pkg'..." -ForegroundColor Cyan
+            scoop uninstall $pkg
+            scoop install $pkg
         }
-    } else {
-        Write-Host "Packages already installed. Use -Update or -Reinstall to update them." -ForegroundColor Yellow
+    } elseif ($InstalledPackageAction -eq 'Prompt') {
+        Write-Host "Already installed ($($alreadyInstalled.Count)): $($alreadyInstalled -join ', ')" -ForegroundColor DarkGray
+        Write-Host 'Skipping updates. Use -InstalledPackageAction Update or Reinstall to refresh them.' -ForegroundColor Yellow
     }
 }
 
 # Handle lazygit and neovide separately (from extras bucket)
 Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/lazygit.json' -InstalledAction $InstalledPackageAction
 Ensure-ScoopPackage -Name 'neovide' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/neovide.json' -InstalledAction $InstalledPackageAction
+
+# WezTerm nightly (versions bucket). Stable extras/wezterm is stuck on 20240203.
+$weztermStableDir = Join-Path $HOME 'scoop\apps\wezterm'
+if (Test-Path -LiteralPath $weztermStableDir) {
+    Write-Host 'Removing Scoop stable wezterm in favor of wezterm-nightly...' -ForegroundColor Cyan
+    scoop uninstall wezterm
+}
+Ensure-ScoopPackage -Name 'wezterm-nightly' -Bucket 'versions' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Versions/master/bucket/wezterm-nightly.json' -InstalledAction $InstalledPackageAction
+$programFilesWez = Join-Path ${env:ProgramFiles} 'WezTerm\wezterm.exe'
+if (Test-Path -LiteralPath $programFilesWez) {
+    Write-Warning "Program Files WezTerm still exists at $programFilesWez. Scoop shims usually win on PATH; uninstall the old installer if the wrong binary is picked up."
+}
 
 # ---------- Fonts ----------
 $fontPackages = @(
@@ -338,25 +353,17 @@ if ($fontsInstalled.Count -gt 0) {
     }
 }
 
-# Install Bun tools (opencode-ai, qodercli, codex)
+# Install Bun tools (opencode-ai, codex)
 if (Get-Command bun -ErrorAction SilentlyContinue) {
-    Write-Host "Installing Bun tools: opencode-ai, qodercli, codex" -ForegroundColor Cyan
+    Write-Host "Installing Bun tools: opencode-ai, codex" -ForegroundColor Cyan
     try {
         bun add -g opencode-ai
-        # Use npm for qodercli due to Windows compatibility issues
-        if (Get-Command npm -ErrorAction SilentlyContinue) {
-            try {
-                npm install -g @qoder-ai/qodercli
-            } catch {
-                Write-Warning "qodercli installation via npm failed. Skipping."
-            }
-        }
         bun add -g @openai/codex
     } catch {
         Write-Warning "Failed to install Bun tools: $_"
     }
 } else {
-    Write-Warning "Bun not found. Skipping opencode-ai, qodercli and codex installation."
+    Write-Warning "Bun not found. Skipping opencode-ai and codex installation."
 }
 
 # Install/update Claude Code (official WinGet package)
