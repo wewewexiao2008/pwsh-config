@@ -1,10 +1,138 @@
 local wezterm = require 'wezterm'
 local act = wezterm.action
+local mux = wezterm.mux
 
 local resurrect = wezterm.plugin.require 'https://github.com/YedPool/resurrect.wezterm'
 local workspace_switcher = wezterm.plugin.require 'https://github.com/MLFlexer/smart_workspace_switcher.wezterm'
 
 local config = wezterm.config_builder()
+
+-- Remember last window size + position across launches (local file, no remote plugin).
+-- WezTerm exposes set_position but not get_position; on Windows we read the
+-- foreground window rect via PowerShell/user32 after resize settles / on blur.
+local window_geometry_cache = wezterm.home_dir .. '/.local/share/wezterm/window-geometry.json'
+local geometry_save_token = 0
+
+local function read_window_geometry()
+  local file = io.open(window_geometry_cache, 'r')
+  if not file then
+    return nil
+  end
+  local raw = file:read '*a'
+  file:close()
+  if not raw or raw == '' then
+    return nil
+  end
+  local ok, data = pcall(wezterm.json_parse, raw)
+  if not ok or type(data) ~= 'table' then
+    return nil
+  end
+  local width = tonumber(data.pixel_width)
+  local height = tonumber(data.pixel_height)
+  local x = tonumber(data.x)
+  local y = tonumber(data.y)
+  if not width or not height or width < 200 or height < 200 then
+    return nil
+  end
+  return {
+    pixel_width = width,
+    pixel_height = height,
+    x = x,
+    y = y,
+  }
+end
+
+local function read_window_position_windows()
+  local ps = [[
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class WezWinPos {
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+}
+'@
+$h = [WezWinPos]::GetForegroundWindow()
+$r = New-Object WezWinPos+RECT
+if ([WezWinPos]::GetWindowRect($h, [ref]$r)) { Write-Output ("{0},{1}" -f $r.Left, $r.Top) }
+]]
+  local ok, stdout = wezterm.run_child_process {
+    'powershell.exe',
+    '-NoProfile',
+    '-NonInteractive',
+    '-Command',
+    ps,
+  }
+  if not ok or not stdout then
+    return nil, nil
+  end
+  local x, y = stdout:match '(-?%d+),(-?%d+)'
+  return tonumber(x), tonumber(y)
+end
+
+local function write_window_geometry(window)
+  local dims = window:get_dimensions()
+  if dims.is_full_screen then
+    return
+  end
+
+  local existing = read_window_geometry() or {}
+  local x, y = existing.x, existing.y
+  if wezterm.target_triple:find 'windows' then
+    local px, py = read_window_position_windows()
+    if px and py then
+      x, y = px, py
+    end
+  end
+
+  local payload = wezterm.json_encode {
+    pixel_width = dims.pixel_width,
+    pixel_height = dims.pixel_height,
+    x = x,
+    y = y,
+  }
+  local file = io.open(window_geometry_cache, 'w')
+  if not file then
+    return
+  end
+  file:write(payload)
+  file:close()
+end
+
+local function schedule_write_window_geometry(window)
+  geometry_save_token = geometry_save_token + 1
+  local token = geometry_save_token
+  wezterm.time.call_after(0.35, function()
+    if token ~= geometry_save_token then
+      return
+    end
+    write_window_geometry(window)
+  end)
+end
+
+wezterm.on('gui-startup', function(cmd)
+  local _tab, _pane, window = mux.spawn_window(cmd or {})
+  local geo = read_window_geometry()
+  if not geo then
+    return
+  end
+  local gui = window:gui_window()
+  if geo.x and geo.y then
+    gui:set_position(geo.x, geo.y)
+  end
+  gui:set_inner_size(geo.pixel_width, geo.pixel_height)
+end)
+
+wezterm.on('window-resized', function(window, _pane)
+  schedule_write_window_geometry(window)
+end)
+
+wezterm.on('window-focus-changed', function(window, _pane)
+  if not window:is_focused() then
+    write_window_geometry(window)
+  end
+end)
 
 resurrect.state_manager.periodic_save { interval_seconds = 15 * 60, save_workspaces = true }
 
