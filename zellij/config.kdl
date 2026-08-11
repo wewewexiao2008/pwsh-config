@@ -3,10 +3,9 @@
 // Use PowerShell 7 (pwsh) as default shell for full profile support
 // Enable session serialization to restore sessions after system restart
 
-default_session "main" {
-    attach_to_session true
-    layout "default"
-}
+session_name "main"
+attach_to_session true
+default_layout "default"
 
 // Configure zellij to use PowerShell 7 by default
 // This ensures all zellij panes load the pwsh-config profile
