@@ -223,6 +223,7 @@ $mainPackages = @(
     'imagemagick',
     'jq',
     'less',
+    'mingw',
     'neovim',
     'pixi',
     'poppler',
@@ -275,8 +276,9 @@ if ($alreadyInstalled.Count -gt 0) {
     }
 }
 
-# Handle lazygit separately (from extras bucket)
+# Handle lazygit and neovide separately (from extras bucket)
 Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/lazygit.json' -InstalledAction $InstalledPackageAction
+Ensure-ScoopPackage -Name 'neovide' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/neovide.json' -InstalledAction $InstalledPackageAction
 
 # ---------- Fonts ----------
 $fontPackages = @(
@@ -443,6 +445,19 @@ New-WezTermConfigLink -LinkPath $weztermTarget -TargetPath $weztermSource
 New-DirectoryLink -LinkPath $nvimTarget -TargetPath $nvimSource
 New-DirectoryLink -LinkPath $yaziTarget -TargetPath $yaziSource
 New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
+
+# Pre-install Neovim plugins so the first launch is ready (requires GitHub access)
+if (Get-Command nvim -ErrorAction SilentlyContinue) {
+    Write-Host 'Syncing Neovim plugins (may take a few minutes on first run)...' -ForegroundColor Cyan
+    try {
+        $nvimProc = Start-Process nvim -ArgumentList '--headless', '"+Lazy! sync"', '+qa' -NoNewWindow -Wait -PassThru
+        if ($nvimProc.ExitCode -ne 0) {
+            Write-Warning "Neovim plugin sync exited with code $($nvimProc.ExitCode). Open nvim and run :Lazy sync to retry."
+        }
+    } catch {
+        Write-Warning "Neovim plugin sync failed: $_. Open nvim and run :Lazy sync to retry."
+    }
+}
 
 Write-Host 'pwsh-config bootstrap complete.' -ForegroundColor Green
 Write-Host 'Restart PowerShell to load the migrated profile.' -ForegroundColor DarkGray

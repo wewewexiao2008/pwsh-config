@@ -108,6 +108,11 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
       <td><a href="https://visualstudio.microsoft.com/visual-cpp-build-tools/">Microsoft</a></td>
     </tr>
     <tr>
+      <td>mingw</td>
+      <td>GCC toolchain; required by nvim-treesitter to compile parsers on Windows.</td>
+      <td><a href="https://www.mingw-w64.org/">Website</a></td>
+    </tr>
+    <tr>
       <td colspan="3" align="center"><strong>File Manager / UI</strong></td>
     </tr>
     <tr>
@@ -188,8 +193,13 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
     </tr>
     <tr>
       <td>Neovim</td>
-      <td>Editor, used as <code>vi</code> and <code>vim</code>.</td>
+      <td>Editor, used as <code>vi</code> and <code>vim</code>; LazyVim config is linked from this repo and plugins are pre-synced by bootstrap.</td>
       <td><a href="https://github.com/neovim/neovim">GitHub</a></td>
+    </tr>
+    <tr>
+      <td>Neovide</td>
+      <td>GUI frontend for Neovim with font zoom persistence and smooth animations.</td>
+      <td><a href="https://github.com/neovide/neovide">GitHub</a></td>
     </tr>
     <tr>
       <td colspan="3" align="center"><strong>Yazi Preview Dependencies</strong></td>

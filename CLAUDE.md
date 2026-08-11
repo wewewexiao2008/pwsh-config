@@ -82,9 +82,9 @@ This allows live edits to any config file in the repo to take effect immediately
 
 ## Tools Managed via Scoop
 
-Main: bat, bun, eza, fd, ffmpeg, fzf, imagemagick, jq, less, neovim, pixi, poppler, resvg, rip, ripgrep, yazi, uv, zellij, zoxide, 7zip
+Main: bat, bun, eza, fd, ffmpeg, fzf, imagemagick, jq, less, mingw, neovim, pixi, poppler, resvg, rip, ripgrep, yazi, uv, zellij, zoxide, 7zip
 
-Extras: lazygit
+Extras: lazygit, neovide
 
 Bun tools (installed after bun): opencode-ai, qodercli, @openai/codex
 
