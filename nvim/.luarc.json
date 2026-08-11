@@ -1,0 +1,15 @@
+{
+  "runtime": {
+    "version": "LuaJIT"
+  },
+  "workspace": {
+    "checkThirdParty": false,
+    "library": [
+      "C:/Program Files/Neovim/share/nvim/runtime/lua",
+      "C:/Users/a2895/AppData/Local/nvim-data/lazy"
+    ]
+  },
+  "diagnostics": {
+    "globals": ["vim", "Snacks", "LazyVim"]
+  }
+}

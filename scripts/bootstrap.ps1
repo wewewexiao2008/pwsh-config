@@ -421,12 +421,14 @@ if ($InstallDevelopmentToolchain) {
 
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
 $weztermSource = Join-Path $RepoRoot 'wezterm\wezterm.lua'
+$nvimSource = Join-Path $RepoRoot 'nvim'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'
 $zellijSource = Join-Path $RepoRoot 'zellij\config.kdl'
 
 $profileTarget5 = Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
 $profileTarget7 = Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
 $weztermTarget = Join-Path $HOME '.wezterm.lua'
+$nvimTarget = Join-Path $env:LOCALAPPDATA 'nvim'
 $yaziTarget = Join-Path $env:APPDATA 'yazi\config'
 $zellijTarget = Join-Path $env:APPDATA 'Zellij\config\config.kdl'
 
@@ -438,6 +440,7 @@ New-Item -ItemType Directory -Force -Path (Split-Path $zellijTarget -Parent) | O
 New-ProfileLink -LinkPath $profileTarget5 -TargetPath $profileSource
 New-ProfileLink -LinkPath $profileTarget7 -TargetPath $profileSource
 New-WezTermConfigLink -LinkPath $weztermTarget -TargetPath $weztermSource
+New-DirectoryLink -LinkPath $nvimTarget -TargetPath $nvimSource
 New-DirectoryLink -LinkPath $yaziTarget -TargetPath $yaziSource
 New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
 

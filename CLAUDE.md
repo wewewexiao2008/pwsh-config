@@ -30,6 +30,7 @@ Example: `.\scripts\bootstrap.ps1 -InstalledPackageAction Update`
 The bootstrap script creates symlinks from user config directories back to this repo:
 - PowerShell profile: `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` → `powershell/Microsoft.PowerShell_profile.ps1`
 - WezTerm config: `~/.wezterm.lua` → `wezterm/wezterm.lua`
+- Neovim config: `%LocalAppData%/nvim` → `nvim/` (LazyVim-based)
 - Yazi config: `%AppData%/yazi/config` → `yazi/config/`
 - Zellij config: `%AppData%/Zellij/config/config.kdl` → `zellij/config.kdl`
 
@@ -55,6 +56,12 @@ This allows live edits to any config file in the repo to take effect immediately
 - Persists a `main` session across restarts via `session_serialization true`
 - Uses `pwsh` as default shell to ensure profile is loaded in all panes
 - Auto-attaches to existing `main` session if it exists
+
+### Neovim Configuration (`nvim/`)
+
+- LazyVim starter base; custom plugins live in `lua/plugins/` (sidekick for Claude Code, yazi.nvim, zoxide.vim)
+- Custom options/autocmds in `lua/config/` (e.g. Neovide zoom persistence, explorer auto-open on VimEnter)
+- Requires a C compiler for nvim-treesitter (Scoop `mingw`) and `claude` CLI in PATH for the sidekick panel
 
 ## Key Aliases and Functions
 

@@ -4,6 +4,7 @@ Personal PowerShell-centered terminal configuration for Windows.
 ## Structure
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
 - `wezterm/wezterm.lua` - WezTerm configuration
+- `nvim/` - Neovim configuration (LazyVim)
 - `yazi/config/` - Yazi configuration, plugins, and flavors
 - `scripts/bootstrap.ps1` - installs dependencies and links live paths to this repo
 
@@ -28,6 +29,7 @@ The bootstrap script installs the required Scoop packages, then links:
 
 - `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
 - `~/.wezterm.lua`
+- `%LocalAppData%/nvim`
 - `%AppData%/yazi/config`
 - `%AppData%/Zellij/config/config.kdl`
 
