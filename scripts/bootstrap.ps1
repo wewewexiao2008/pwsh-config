@@ -287,7 +287,6 @@ $mainPackages = @(
     'neovim',
     'pixi',
     'poppler',
-    'pwsh',
     'resvg',
     'rip',
     'ripgrep',
@@ -297,6 +296,13 @@ $mainPackages = @(
     'zoxide',
     '7zip'
 )
+
+# Skip Scoop pwsh if already available (e.g. MS Store version) to save disk space
+if (-not (Get-Command pwsh -ErrorAction SilentlyContinue)) {
+    $mainPackages += 'pwsh'
+} else {
+    Write-Host "pwsh already available at $((Get-Command pwsh).Source). Skipping Scoop install." -ForegroundColor DarkGray
+}
 
 # Get all installed packages at once for batch processing
 $installedOutput = scoop list 2>$null
@@ -338,7 +344,13 @@ if ($alreadyInstalled.Count -gt 0) {
 
 # Handle lazygit and neovide separately (from extras bucket)
 Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/lazygit.json' -InstalledAction $InstalledPackageAction
-Ensure-ScoopPackage -Name 'neovide' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/neovide.json' -InstalledAction $InstalledPackageAction
+
+# Skip Scoop neovide if already available (e.g. manually installed on another drive) to save C: space
+if (Get-Command neovide -ErrorAction SilentlyContinue) {
+    Write-Host "neovide already available at $((Get-Command neovide).Source). Skipping Scoop install." -ForegroundColor DarkGray
+} else {
+    Ensure-ScoopPackage -Name 'neovide' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/neovide.json' -InstalledAction $InstalledPackageAction
+}
 
 # WezTerm nightly (versions bucket). Stable extras/wezterm is stuck on 20240203.
 $weztermStableDir = Join-Path $HOME 'scoop\apps\wezterm'
@@ -347,14 +359,37 @@ if (Test-Path -LiteralPath $weztermStableDir) {
     scoop uninstall wezterm
 }
 Ensure-ScoopPackage -Name 'wezterm-nightly' -Bucket 'versions' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Versions/master/bucket/wezterm-nightly.json' -InstalledAction $InstalledPackageAction
+
+# Uninstall Program Files WezTerm (old stable, doesn't support ~/.config/wezterm modular config)
 $programFilesWez = Join-Path ${env:ProgramFiles} 'WezTerm\wezterm.exe'
 if (Test-Path -LiteralPath $programFilesWez) {
-    Write-Warning "Program Files WezTerm still exists at $programFilesWez. Scoop shims usually win on PATH; uninstall the old installer if the wrong binary is picked up."
+    Write-Host "Uninstalling old Program Files WezTerm to avoid PATH shadowing..." -ForegroundColor Cyan
+    $wezUninstaller = Get-ChildItem -Path (Join-Path ${env:ProgramFiles} 'WezTerm') -Filter 'unins*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($wezUninstaller) {
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        $args = '/SILENT /SUPPRESSMSGBOXES /NORESTART'
+        try {
+            if ($isAdmin) {
+                Start-Process -FilePath $wezUninstaller.FullName -ArgumentList $args -Wait -NoNewWindow -ErrorAction Stop
+            } else {
+                Start-Process -FilePath $wezUninstaller.FullName -ArgumentList $args -Wait -Verb RunAs -ErrorAction Stop
+            }
+        } catch {
+            Write-Warning "Could not auto-uninstall Program Files WezTerm (needs admin/UAC). Please uninstall it manually: $programFilesWez"
+        }
+        if (Test-Path -LiteralPath $programFilesWez) {
+            Write-Warning "Program Files WezTerm still exists at $programFilesWez. Please uninstall it manually to avoid PATH shadowing."
+        } else {
+            Write-Host "Old WezTerm removed from Program Files." -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Warning "Program Files WezTerm found at $programFilesWez but no uninstaller located. Please uninstall it manually."
+    }
 }
 
 # ---------- Fonts ----------
 $fontPackages = @(
-    'JetBrainsMono-NF-CN',
+    'JetBrainsMono-NF',
     'Maple-Mono-NF-CN'
 )
 
@@ -400,6 +435,16 @@ if (Get-Command bun -ErrorAction SilentlyContinue) {
 
 # Install/update Claude Code (official WinGet package)
 Write-Host "Installing/updating Claude Code..." -ForegroundColor Cyan
+
+# Remove bun-installed Claude Code to avoid duplicate claude executables on PATH
+if (Get-Command bun -ErrorAction SilentlyContinue) {
+    $bunClaude = bun pm ls -g 2>$null | Select-String '@anthropic-ai/claude-code'
+    if ($bunClaude) {
+        Write-Host "Removing bun-installed @anthropic-ai/claude-code (switching to winget)..." -ForegroundColor Cyan
+        try { bun remove -g @anthropic-ai/claude-code } catch { Write-Warning "Failed to remove bun claude-code: $_" }
+    }
+}
+
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Write-Warning 'winget not found. Skipping Claude Code installation.'
 } else {
@@ -483,6 +528,30 @@ if ($InstallDevelopmentToolchain) {
     Ensure-VsBuildTools
 } else {
     Write-Host 'Skipping optional Rust and Visual Studio Build Tools. Use -InstallDevelopmentToolchain to install them.' -ForegroundColor DarkGray
+}
+
+# Clean up Scoop rust failed-install residue (frees ~700MB on C: drive)
+$rustScoopDir = Join-Path $HOME 'scoop\apps\rust'
+if (Test-Path -LiteralPath $rustScoopDir) {
+    $rustInfo = scoop export 2>$null | Out-String | ConvertFrom-Json
+    $rustApp = $rustInfo.apps | Where-Object { $_.Name -eq 'rust' }
+    if ($rustApp -and $rustApp.Info -match 'failed') {
+        Write-Host 'Cleaning Scoop rust failed-install residue...' -ForegroundColor Cyan
+        scoop uninstall rust 2>$null
+        Remove-Item -LiteralPath $rustScoopDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# Detect Program Files Neovim shadowing Scoop version (Scoop has 0.11.6, Program Files may have older)
+$programFilesNvim = Join-Path $env:ProgramFiles 'Neovim\bin\nvim.exe'
+if (Test-Path -LiteralPath $programFilesNvim) {
+    $scoopNvimShim = Join-Path $HOME 'scoop\shims\nvim.exe'
+    $scoopNvimWin = Test-Path -LiteralPath $scoopNvimShim
+    $currentNvim = (Get-Command nvim -ErrorAction SilentlyContinue).Source
+    if ($scoopNvimWin -and $currentNvim -and $currentNvim -notlike "$HOME\scoop\*") {
+        Write-Warning "Neovim is shadowed: PATH resolves to '$currentNvim' but Scoop has a newer version."
+        Write-Warning "Uninstall Program Files Neovim ($env:ProgramFiles\Neovim) so the Scoop shim takes effect."
+    }
 }
 
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
