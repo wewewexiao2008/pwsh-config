@@ -10,7 +10,7 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "defaultMode": "dontAsk"
+    "defaultMode": "auto"
   },
   "model": "sonnet",
   "worktree": {
@@ -34,7 +34,7 @@
     }
   },
   "language": "zh-cn",
-  "effortLevel": "xhigh",
+  "effortLevel": "max",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "editorMode": "normal",
