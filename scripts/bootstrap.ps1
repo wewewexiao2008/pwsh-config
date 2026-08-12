@@ -237,6 +237,22 @@ function Remove-LegacyWezTermHomeConfig {
     Write-Warning "Legacy WezTerm home config moved to backup: $backup"
 }
 
+function New-ConfigFileLink {
+    param(
+        [Parameter(Mandatory = $true)][string]$LinkPath,
+        [Parameter(Mandatory = $true)][string]$TargetPath
+    )
+
+    Backup-ExistingPath $LinkPath $TargetPath
+    New-Item -ItemType Directory -Force -Path (Split-Path $LinkPath -Parent) | Out-Null
+    try {
+        New-Item -ItemType SymbolicLink -Path $LinkPath -Target $TargetPath | Out-Null
+    } catch {
+        Copy-Item -LiteralPath $TargetPath -Destination $LinkPath -Force
+        Write-Warning "Symlink failed for '$LinkPath'; copied file instead (edits will not sync back to the repo)."
+    }
+}
+
 function New-ZellijConfigLink {
     param(
         [Parameter(Mandatory = $true)][string]$LinkPath,
@@ -474,6 +490,9 @@ $weztermSource = Join-Path $RepoRoot 'wezterm'
 $nvimSource = Join-Path $RepoRoot 'nvim'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'
 $zellijSource = Join-Path $RepoRoot 'zellij\config.kdl'
+$claudeSettingsSource = Join-Path $RepoRoot 'claude\settings.json'
+$claudeStatuslineSource = Join-Path $RepoRoot 'claude\statusline-command.sh'
+$omnirouteEnvExample = Join-Path $RepoRoot 'omniroute\.env.example'
 
 $profileTarget5 = Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
 $profileTarget7 = Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
@@ -482,12 +501,19 @@ $legacyWeztermHome = Join-Path $HOME '.wezterm.lua'
 $nvimTarget = Join-Path $env:LOCALAPPDATA 'nvim'
 $yaziTarget = Join-Path $env:APPDATA 'yazi\config'
 $zellijTarget = Join-Path $env:APPDATA 'Zellij\config\config.kdl'
+$claudeDir = Join-Path $HOME '.claude'
+$claudeSettingsTarget = Join-Path $claudeDir 'settings.json'
+$claudeStatuslineTarget = Join-Path $claudeDir 'statusline-command.sh'
+$omnirouteDir = Join-Path $HOME '.omniroute'
+$omnirouteEnvTarget = Join-Path $omnirouteDir '.env'
 
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget5 -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget7 -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $HOME '.config') | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $yaziTarget -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $zellijTarget -Parent) | Out-Null
+New-Item -ItemType Directory -Force -Path $claudeDir | Out-Null
+New-Item -ItemType Directory -Force -Path $omnirouteDir | Out-Null
 
 New-ProfileLink -LinkPath $profileTarget5 -TargetPath $profileSource
 New-ProfileLink -LinkPath $profileTarget7 -TargetPath $profileSource
@@ -496,6 +522,28 @@ New-DirectoryLink -LinkPath $weztermTarget -TargetPath $weztermSource
 New-DirectoryLink -LinkPath $nvimTarget -TargetPath $nvimSource
 New-DirectoryLink -LinkPath $yaziTarget -TargetPath $yaziSource
 New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
+New-ConfigFileLink -LinkPath $claudeSettingsTarget -TargetPath $claudeSettingsSource
+New-ConfigFileLink -LinkPath $claudeStatuslineTarget -TargetPath $claudeStatuslineSource
+
+# OmniRoute: seed .env only when missing (never overwrite local secrets)
+if (-not (Test-Path -LiteralPath $omnirouteEnvTarget)) {
+    Copy-Item -LiteralPath $omnirouteEnvExample -Destination $omnirouteEnvTarget
+    Write-Host "Created $omnirouteEnvTarget from example — fill STORAGE_ENCRYPTION_KEY before first OmniRoute start." -ForegroundColor Yellow
+} else {
+    Write-Host "Keeping existing OmniRoute env: $omnirouteEnvTarget" -ForegroundColor DarkGray
+}
+
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+    $omniroutePkg = npm list -g omniroute --depth=0 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'Installing omniroute globally via npm...' -ForegroundColor Cyan
+        npm install -g omniroute
+    } else {
+        Write-Host 'OmniRoute already installed globally.' -ForegroundColor DarkGray
+    }
+} else {
+    Write-Warning 'npm not found. Skip omniroute install; see omniroute/README.md'
+}
 
 # Pre-install Neovim plugins so the first launch is ready (requires GitHub access)
 if (Get-Command nvim -ErrorAction SilentlyContinue) {

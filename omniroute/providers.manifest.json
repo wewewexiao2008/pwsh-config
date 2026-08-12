@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "description": "Non-secret OmniRoute topology used with Claude Code via localhost gateway. API keys stay on each machine (UI or encrypted DB).",
+  "gateway": {
+    "baseUrl": "http://127.0.0.1:20128",
+    "claudeAuthTokenPlaceholder": "omniroute-local"
+  },
+  "blockedProviders": [
+    "theoldllm",
+    "tllm"
+  ],
+  "providers": [
+    {
+      "id": "glm",
+      "label": "GLM Coding (z.ai)",
+      "kind": "openai-compatible",
+      "notes": "Primary coding / opus mapping target (glm/glm-5.2).",
+      "apiKeySource": "machine-local (e.g. glm-key.txt or dashboard)"
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek",
+      "kind": "openai-compatible",
+      "notes": "Used for haiku/sonnet flash mapping (deepseek/deepseek-v4-flash).",
+      "apiKeySource": "machine-local"
+    },
+    {
+      "id": "kimi",
+      "label": "Kimi Code",
+      "kind": "kimi-coding-apikey",
+      "notes": "Optional coding provider.",
+      "apiKeySource": "machine-local (e.g. kimi-key.txt)"
+    },
+    {
+      "id": "codez",
+      "label": "CodeZ",
+      "kind": "openai-compatible",
+      "baseUrl": "https://api-s.zwenooo.link/v1",
+      "notes": "Also used by Codex; key from machine-local auth, not this repo.",
+      "apiKeySource": "machine-local"
+    }
+  ],
+  "claudeModelRouting": {
+    "ANTHROPIC_MODEL": "glm/glm-5.2",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm/glm-5.2",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek/deepseek-v4-flash",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek/deepseek-v4-flash"
+  }
+}

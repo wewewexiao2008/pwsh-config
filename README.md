@@ -4,6 +4,8 @@ Personal PowerShell-centered terminal configuration for Windows.
 ## Structure
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
 - `wezterm/` - WezTerm configuration (`wezterm.lua` + `config/` + `events/`)
+- `claude/` - Claude Code global settings (non-secret) + statusline script
+- `omniroute/` - OmniRoute deploy notes + provider manifest (no API keys)
 - `nvim/` - Neovim configuration (LazyVim)
 - `yazi/config/` - Yazi configuration, plugins, and flavors
 - `scripts/bootstrap.ps1` - installs dependencies and links live paths to this repo
@@ -30,6 +32,9 @@ The bootstrap script updates Scoop buckets, installs the required packages (incl
 - `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
 - `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` (PowerShell 7)
 - `~/.config/wezterm` → `wezterm/` (modular config; removes legacy `~/.wezterm.lua` if it pointed at this repo)
+- `~/.claude/settings.json` → `claude/settings.json`
+- `~/.claude/statusline-command.sh` → `claude/statusline-command.sh`
+- seeds `~/.omniroute/.env` from `omniroute/.env.example` only when missing; installs `omniroute` via npm if absent
 - `%LocalAppData%/nvim`
 - `%AppData%/yazi/config`
 - `%AppData%/Zellij/config/config.kdl`

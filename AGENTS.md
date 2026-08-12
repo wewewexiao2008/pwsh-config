@@ -30,6 +30,9 @@ Example: `.\scripts\bootstrap.ps1 -InstalledPackageAction Update`
 The bootstrap script creates symlinks from user config directories back to this repo:
 - PowerShell profile: `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` → `powershell/Microsoft.PowerShell_profile.ps1`
 - WezTerm config: `~/.config/wezterm` → `wezterm/` (`wezterm.lua` + `config/` + `events/`)
+- Claude Code global: `~/.claude/settings.json` → `claude/settings.json` (routes through local OmniRoute)
+- Claude statusline: `~/.claude/statusline-command.sh` → `claude/statusline-command.sh`
+- OmniRoute: non-secret deploy docs in `omniroute/`; secrets stay in `~/.omniroute/.env` (seeded once from example)
 - Neovim config: `%LocalAppData%/nvim` → `nvim/` (LazyVim-based)
 - Yazi config: `%AppData%/yazi/config` → `yazi/config/`
 - Zellij config: `%AppData%/Zellij/config/config.kdl` → `zellij/config.kdl`

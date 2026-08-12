@@ -1,0 +1,43 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "omniroute-local",
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:20128",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek/deepseek-v4-flash",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek/deepseek-v4-flash",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm/glm-5.2",
+    "ANTHROPIC_MODEL": "glm/glm-5.2",
+    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1"
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "defaultMode": "dontAsk"
+  },
+  "model": "sonnet",
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "ecc@ecc": true,
+    "context7@claude-plugins-official": false,
+    "hookify@claude-plugins-official": false
+  },
+  "extraKnownMarketplaces": {
+    "ecc": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/ECC"
+      }
+    }
+  },
+  "language": "zh-cn",
+  "effortLevel": "xhigh",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "editorMode": "normal",
+  "verbose": true,
+  "useAutoModeDuringPlan": true
+}
