@@ -3,6 +3,7 @@ Desktop.ini
 *.bak
 *.tmp
 *.orig
+.claude/
 omniroute/.env
 omniroute/bundle.json
 omniroute/*.bundle.json
