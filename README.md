@@ -3,7 +3,7 @@ Personal PowerShell-centered terminal configuration for Windows.
 
 ## Structure
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
-- `wezterm/wezterm.lua` - WezTerm configuration
+- `wezterm/` - WezTerm configuration (`wezterm.lua` + `config/` + `events/`)
 - `nvim/` - Neovim configuration (LazyVim)
 - `yazi/config/` - Yazi configuration, plugins, and flavors
 - `scripts/bootstrap.ps1` - installs dependencies and links live paths to this repo
@@ -29,7 +29,7 @@ The bootstrap script updates Scoop buckets, installs the required packages (incl
 
 - `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
 - `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` (PowerShell 7)
-- `~/.wezterm.lua` (takes precedence over `~/.config/wezterm/wezterm.lua`)
+- `~/.config/wezterm` → `wezterm/` (modular config; removes legacy `~/.wezterm.lua` if it pointed at this repo)
 - `%LocalAppData%/nvim`
 - `%AppData%/yazi/config`
 - `%AppData%/Zellij/config/config.kdl`

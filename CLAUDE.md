@@ -29,7 +29,7 @@ Example: `.\scripts\bootstrap.ps1 -InstalledPackageAction Update`
 
 The bootstrap script creates symlinks from user config directories back to this repo:
 - PowerShell profile: `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` → `powershell/Microsoft.PowerShell_profile.ps1`
-- WezTerm config: `~/.wezterm.lua` → `wezterm/wezterm.lua`
+- WezTerm config: `~/.config/wezterm` → `wezterm/` (`wezterm.lua` + `config/` + `events/`)
 - Neovim config: `%LocalAppData%/nvim` → `nvim/` (LazyVim-based)
 - Yazi config: `%AppData%/yazi/config` → `yazi/config/`
 - Zellij config: `%AppData%/Zellij/config/config.kdl` → `zellij/config.kdl`

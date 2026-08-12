@@ -198,27 +198,43 @@ function New-ProfileLink {
     }
 }
 
-function New-WezTermConfigLink {
+function Remove-LegacyWezTermHomeConfig {
     param(
-        [Parameter(Mandatory = $true)][string]$LinkPath,
-        [Parameter(Mandatory = $true)][string]$TargetPath
+        [Parameter(Mandatory = $true)][string]$LegacyPath,
+        [Parameter(Mandatory = $true)][string]$RepoWezTermDir
     )
 
-    Backup-ExistingPath $LinkPath $TargetPath
-    try {
-        New-Item -ItemType SymbolicLink -Path $LinkPath -Target $TargetPath | Out-Null
-    } catch {
-        $escaped = $TargetPath.Replace('\', '/').Replace("'", "\'")
-        $loader = @(
-            "local wezterm = require 'wezterm'"
-            "local config_path = '$escaped'"
-            ''
-            'wezterm.add_to_config_reload_watch_list(config_path)'
-            ''
-            'return dofile(config_path)'
-        )
-        Set-Content -Path $LinkPath -Encoding utf8 -Value $loader
+    if (-not (Test-Path -LiteralPath $LegacyPath)) { return }
+
+    $item = Get-Item -LiteralPath $LegacyPath -Force
+    $repoEntry = Join-Path $RepoWezTermDir 'wezterm.lua'
+    if ($item.LinkType) {
+        $target = @($item.Target)[0]
+        if ($target -and (
+                [string]::Equals($target, $repoEntry, [System.StringComparison]::OrdinalIgnoreCase) -or
+                [string]::Equals($target, $RepoWezTermDir, [System.StringComparison]::OrdinalIgnoreCase)
+            )) {
+            Remove-Item -LiteralPath $LegacyPath -Force
+            Write-Host "Removed legacy WezTerm link: $LegacyPath" -ForegroundColor DarkGray
+            return
+        }
     }
+
+    $content = Get-Content -LiteralPath $LegacyPath -Raw -ErrorAction SilentlyContinue
+    if ($content -and (
+            $content -match [regex]::Escape($repoEntry) -or
+            $content -match [regex]::Escape($repoEntry.Replace('\', '/')) -or
+            $content -match [regex]::Escape($RepoWezTermDir) -or
+            $content -match [regex]::Escape($RepoWezTermDir.Replace('\', '/'))
+        )) {
+        Remove-Item -LiteralPath $LegacyPath -Force
+        Write-Host "Removed legacy WezTerm loader: $LegacyPath" -ForegroundColor DarkGray
+        return
+    }
+
+    $backup = "$LegacyPath.bak.$(Get-Date -Format 'yyyyMMddHHmmss')"
+    Move-Item -LiteralPath $LegacyPath -Destination $backup
+    Write-Warning "Legacy WezTerm home config moved to backup: $backup"
 }
 
 function New-ZellijConfigLink {
@@ -454,26 +470,29 @@ if ($InstallDevelopmentToolchain) {
 }
 
 $profileSource = Join-Path $RepoRoot 'powershell\Microsoft.PowerShell_profile.ps1'
-$weztermSource = Join-Path $RepoRoot 'wezterm\wezterm.lua'
+$weztermSource = Join-Path $RepoRoot 'wezterm'
 $nvimSource = Join-Path $RepoRoot 'nvim'
 $yaziSource = Join-Path $RepoRoot 'yazi\config'
 $zellijSource = Join-Path $RepoRoot 'zellij\config.kdl'
 
 $profileTarget5 = Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
 $profileTarget7 = Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
-$weztermTarget = Join-Path $HOME '.wezterm.lua'
+$weztermTarget = Join-Path $HOME '.config\wezterm'
+$legacyWeztermHome = Join-Path $HOME '.wezterm.lua'
 $nvimTarget = Join-Path $env:LOCALAPPDATA 'nvim'
 $yaziTarget = Join-Path $env:APPDATA 'yazi\config'
 $zellijTarget = Join-Path $env:APPDATA 'Zellij\config\config.kdl'
 
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget5 -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget7 -Parent) | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $HOME '.config') | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $yaziTarget -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $zellijTarget -Parent) | Out-Null
 
 New-ProfileLink -LinkPath $profileTarget5 -TargetPath $profileSource
 New-ProfileLink -LinkPath $profileTarget7 -TargetPath $profileSource
-New-WezTermConfigLink -LinkPath $weztermTarget -TargetPath $weztermSource
+Remove-LegacyWezTermHomeConfig -LegacyPath $legacyWeztermHome -RepoWezTermDir $weztermSource
+New-DirectoryLink -LinkPath $weztermTarget -TargetPath $weztermSource
 New-DirectoryLink -LinkPath $nvimTarget -TargetPath $nvimSource
 New-DirectoryLink -LinkPath $yaziTarget -TargetPath $yaziSource
 New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
