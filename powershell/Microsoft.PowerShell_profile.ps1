@@ -15,6 +15,7 @@ $Global:ProfileLoadStart = [System.Diagnostics.Stopwatch]::StartNew()
 # ---------- aliases ----------
 Set-Alias vi nvim
 Set-Alias vim nvim
+Set-Alias fe fresh
 Set-Alias py python
 Set-Alias g git
 # zoxide init (below) provides the real `z` / `zi` commands

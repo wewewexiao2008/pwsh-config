@@ -5,6 +5,9 @@ function M.apply_to_config(config)
   config.prefer_to_spawn_tabs = true
   config.adjust_window_size_when_changing_font_size = false
   config.default_prog = { 'pwsh.exe', '-NoLogo' }
+  -- herdr needs distinct ctrl+shift+arrow events; default is false.
+  config.enable_kitty_keyboard = true
+
   config.bypass_mouse_reporting_modifiers = 'SHIFT'
   config.window_close_confirmation = 'AlwaysPrompt'
   config.exit_behavior = 'CloseOnCleanExit'

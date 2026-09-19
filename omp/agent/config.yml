@@ -1,0 +1,77 @@
+modelRoles:
+  default: zai/glm-5.3:max
+  slow: openai-codex/gpt-6-astra
+  vision: kimi-code/k3-256k:max
+  plan: cursor/claude-fable-5-1-xhigh:auto
+  commit: cursor/cursor-grok-4.6-fast:xhigh
+  task: cursor/cursor-grok-4.6-fast:xhigh
+  smol: cursor/cursor-grok-4.6-fast:xhigh
+  advisor: zai/glm-5.3-flash:auto
+  tiny: cursor/cursor-grok-4.6-fast:xhigh
+setupVersion: 2
+theme:
+  dark: dark-catppuccin
+  light: light
+composer:
+  shape: claude
+statusLine:
+  separator: powerline-thin
+  contextLine: embedded
+  transparent: false
+tui:
+  textSizing: false
+  tight: false
+display:
+  shimmer: kitt
+  showTokenUsage: true
+  cacheMissMarker: true
+  hideToolActivity: true
+advisor:
+  enabled: true
+  syncBacklog: "1"
+prewalk:
+  enabled: false
+startup:
+  quiet: false
+contextPromotion:
+  enabled: false
+extendedContext: false
+branchSummary:
+  enabled: true
+edit:
+  mode: hashline
+readLineNumbers: true
+vault:
+  enabled: true
+github:
+  enabled: true
+hideThinkingBlock: true
+tier:
+  openai: none
+  google: none
+  subagent: inherit
+  advisor: inherit
+cycleOrder:
+  - smol
+  - default
+  - slow
+  - vision
+retry:
+  fallbackChains:
+    slow:
+      - devin/gpt-6-astra
+      - codez/gpt-6-astra
+    default:
+      - zhipu-coding-plan/glm-5.3
+      - devin/glm-5-3-1m
+    advisor:
+      - zhipu-coding-plan/glm-5.3-flash
+    smol:
+      - devin/grok-4-6
+      - xai-oauth/grok-4.6
+    vision:
+      - devin/kimi-k3
+browser:
+  headless: true
+dev:
+  autoqaConsent: granted

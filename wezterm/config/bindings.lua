@@ -7,6 +7,83 @@ local workspace_switcher = plugins.workspace_switcher
 
 local M = {}
 
+local function name_is_herdr(name)
+  name = (name or ''):lower()
+  return name == 'herdr' or name == 'herdr.exe' or name:match('[/\\]herdr%.exe$') ~= nil
+end
+
+local function name_is_wezterm(name)
+  name = (name or ''):lower()
+  return name:find('wezterm', 1, true) ~= nil
+end
+
+local function node_is_herdr(node)
+  return node and (name_is_herdr(node.name) or name_is_herdr(node.executable))
+end
+
+-- Windows reports the newest descendant as the foreground process (often a
+-- shell inside a herdr pane). Walk parents and a shallow child tree, but stop
+-- at wezterm itself so a herdr pane does not poison sibling wezterm panes.
+local function tree_has_herdr(node, child_depth)
+  if not node or child_depth < 0 then
+    return false
+  end
+  if node_is_herdr(node) then
+    return true
+  end
+  local children = node.children
+  if not children then
+    return false
+  end
+  for _, child in pairs(children) do
+    if tree_has_herdr(child, child_depth - 1) then
+      return true
+    end
+  end
+  return false
+end
+
+local function pane_is_herdr(pane)
+  local ok, info = pcall(function()
+    return pane:get_foreground_process_info()
+  end)
+  if ok and info then
+    local node = info
+    for _ = 1, 12 do
+      if not node then
+        break
+      end
+      if name_is_wezterm(node.name) or name_is_wezterm(node.executable) then
+        break
+      end
+      if tree_has_herdr(node, 3) then
+        return true
+      end
+      if not node.ppid or node.ppid == 0 then
+        break
+      end
+      node = wezterm.procinfo.get_info_for_pid(node.ppid)
+    end
+  end
+  local name_ok, name = pcall(function()
+    return pane:get_foreground_process_name()
+  end)
+  return name_ok and name_is_herdr(name)
+end
+
+-- WezTerm matches config.keys before the PTY sees the chord. Send it into the
+-- pane only when herdr is in this pane's process tree; otherwise keep the
+-- native wezterm action.
+local function herdr_or(key, mods, fallback)
+  return wezterm.action_callback(function(window, pane)
+    if pane_is_herdr(pane) then
+      window:perform_action(act.SendKey { key = key, mods = mods }, pane)
+    else
+      window:perform_action(fallback, pane)
+    end
+  end)
+end
+
 function M.apply_to_config(config)
   config.keys = {
     {
@@ -40,75 +117,79 @@ function M.apply_to_config(config)
     {
       key = 't',
       mods = 'ALT',
-      action = act.SpawnTab 'CurrentPaneDomain',
+      action = herdr_or('t', 'ALT', act.SpawnTab 'CurrentPaneDomain'),
     },
     {
       key = 'w',
       mods = 'ALT',
+      action = herdr_or('w', 'ALT', act.CloseCurrentPane { confirm = true }),
+    },
+    {
+      key = 'w',
+      mods = 'ALT|SHIFT',
       action = act.CloseCurrentTab { confirm = true },
     },
-    -- SplitVertical = top/bottom. SplitHorizontal = left/right.
-    -- '"' is Shift+' on US keyboards, so horizontal split needs ALT|SHIFT.
+    -- alt+= = vertical (top/bottom). alt+' = horizontal (left/right).
+    -- CTRL|SHIFT+arrow: herdr splits; otherwise wezterm directional split.
     {
-      key = "'",
+      key = 'LeftArrow',
+      mods = 'CTRL|SHIFT',
+      action = herdr_or('LeftArrow', 'CTRL|SHIFT', act.SplitPane { direction = 'Left', size = { Percent = 50 } }),
+    },
+    {
+      key = 'RightArrow',
+      mods = 'CTRL|SHIFT',
+      action = herdr_or('RightArrow', 'CTRL|SHIFT', act.SplitPane { direction = 'Right', size = { Percent = 50 } }),
+    },
+    {
+      key = 'UpArrow',
+      mods = 'CTRL|SHIFT',
+      action = herdr_or('UpArrow', 'CTRL|SHIFT', act.SplitPane { direction = 'Up', size = { Percent = 50 } }),
+    },
+    {
+      key = 'DownArrow',
+      mods = 'CTRL|SHIFT',
+      action = herdr_or('DownArrow', 'CTRL|SHIFT', act.SplitPane { direction = 'Down', size = { Percent = 50 } }),
+    },
+    {
+      key = '=',
       mods = 'ALT',
       action = act.SplitVertical { domain = 'CurrentPaneDomain' },
     },
     {
       key = "'",
-      mods = 'ALT|SHIFT',
+      mods = 'ALT',
       action = act.SplitHorizontal { domain = 'CurrentPaneDomain' },
     },
-    -- Directional splits: new pane opens toward the arrow.
-    {
-      key = 'LeftArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SplitPane { direction = 'Left', size = { Percent = 50 } },
-    },
-    {
-      key = 'RightArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SplitPane { direction = 'Right', size = { Percent = 50 } },
-    },
-    {
-      key = 'UpArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SplitPane { direction = 'Up', size = { Percent = 50 } },
-    },
-    {
-      key = 'DownArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SplitPane { direction = 'Down', size = { Percent = 50 } },
-    },
     {
       key = 'LeftArrow',
       mods = 'ALT',
-      action = act.ActivateTabRelative(-1),
+      action = herdr_or('LeftArrow', 'ALT', act.ActivateTabRelative(-1)),
     },
     {
       key = 'RightArrow',
       mods = 'ALT',
-      action = act.ActivateTabRelative(1),
+      action = herdr_or('RightArrow', 'ALT', act.ActivateTabRelative(1)),
     },
     {
       key = 'LeftArrow',
       mods = 'ALT|SHIFT',
-      action = act.ActivatePaneDirection 'Left',
+      action = herdr_or('LeftArrow', 'ALT|SHIFT', act.ActivatePaneDirection 'Left'),
     },
     {
       key = 'RightArrow',
       mods = 'ALT|SHIFT',
-      action = act.ActivatePaneDirection 'Right',
+      action = herdr_or('RightArrow', 'ALT|SHIFT', act.ActivatePaneDirection 'Right'),
     },
     {
       key = 'UpArrow',
       mods = 'ALT|SHIFT',
-      action = act.ActivatePaneDirection 'Up',
+      action = herdr_or('UpArrow', 'ALT|SHIFT', act.ActivatePaneDirection 'Up'),
     },
     {
       key = 'DownArrow',
       mods = 'ALT|SHIFT',
-      action = act.ActivatePaneDirection 'Down',
+      action = herdr_or('DownArrow', 'ALT|SHIFT', act.ActivatePaneDirection 'Down'),
     },
     {
       key = 'Backspace',

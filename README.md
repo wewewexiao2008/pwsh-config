@@ -4,6 +4,8 @@ Personal PowerShell-centered terminal configuration for Windows.
 ## Structure
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
 - `wezterm/` - WezTerm configuration (`wezterm.lua` + `config/` + `events/`)
+- `herdr/config.toml` - Windows herdr keys/theme (live path is `%AppData%/herdr/config.toml`)
+- `omp/agent/` - OMP `config.yml`, `models.yml`, Codez key helper, and the codez-flex extension
 - `claude/` - Claude Code global settings (non-secret) + statusline script
 - `omniroute/` - OmniRoute deploy notes + provider manifest (no API keys)
 - `nvim/` - Neovim configuration (LazyVim)
@@ -27,11 +29,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\bootstrap.ps1
 ```
 
-The bootstrap script updates Scoop buckets, installs the required packages (including PowerShell 7 via `pwsh`, `zellij` from Scoop main, and `wezterm-nightly` from the Scoop `versions` bucket), then links:
+The bootstrap script installs `aria2` and enables Scoop multi-connection downloads, updates Scoop buckets, installs the required packages (including PowerShell 7 via `pwsh`, `zellij` from Scoop main, and `wezterm-nightly` from the Scoop `versions` bucket), then links:
 
 - `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
 - `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` (PowerShell 7)
 - `~/.config/wezterm` → `wezterm/` (modular config; removes legacy `~/.wezterm.lua` if it pointed at this repo)
+- `%AppData%/herdr/config.toml` → `herdr/config.toml` (session/log/sock stay unmanaged). File symlinks need Developer Mode or admin; otherwise bootstrap copies the file.
+- `~/.omp/agent/{config.yml,models.yml,read-cc-switch-codex-key.py}` and `extensions/codez-flex-tier.ts` (sessions, DBs, and herdr-owned plugin files stay unmanaged). Same symlink-or-copy rule.
 - `~/.claude/settings.json` → `claude/settings.json`
 - `~/.claude/statusline-command.sh` → `claude/statusline-command.sh`
 - seeds `~/.omniroute/.env` from `omniroute/.env.example` only when missing; installs `omniroute` via npm if absent
@@ -157,6 +161,11 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
       <td colspan="3" align="center"><strong>Search / View</strong></td>
     </tr>
     <tr>
+      <td>aria2</td>
+      <td>Multi-connection downloader used by Scoop to speed up package downloads.</td>
+      <td><a href="https://github.com/aria2/aria2">GitHub</a></td>
+    </tr>
+    <tr>
       <td>bat</td>
       <td>Better <code>cat</code> with syntax highlighting, also used in previews.</td>
       <td><a href="https://github.com/sharkdp/bat">GitHub</a></td>
@@ -203,6 +212,11 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
       <td>Neovim</td>
       <td>Editor, used as <code>vi</code> and <code>vim</code>; LazyVim config is linked from this repo and plugins are pre-synced by bootstrap.</td>
       <td><a href="https://github.com/neovim/neovim">GitHub</a></td>
+    </tr>
+    <tr>
+      <td>Fresh</td>
+      <td>Modern terminal editor with familiar keybindings, mouse support, command palette, LSP, and large-file support; used as <code>fe</code>.</td>
+      <td><a href="https://github.com/sinelaw/fresh">GitHub</a></td>
     </tr>
     <tr>
       <td>Neovide</td>
@@ -252,24 +266,44 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
   </thead>
   <tbody>
     <tr>
-      <td>WezTerm</td>
+      <td>WezTerm / herdr</td>
       <td><code>Alt+t</code> / <code>Alt+w</code></td>
-      <td>Open / close tab</td>
+      <td>New tab / close pane. WezTerm sends the chord into the pane when herdr is in the process tree; otherwise WezTerm opens / closes its own pane.</td>
     </tr>
     <tr>
       <td>WezTerm</td>
-      <td><code>Alt+'</code> / <code>Alt+"</code></td>
-      <td>Split pane vertically / horizontally</td>
+      <td><code>Alt+Shift+w</code></td>
+      <td>Close current WezTerm tab</td>
     </tr>
     <tr>
       <td>WezTerm</td>
+      <td><code>Alt+=</code> / <code>Alt+'</code></td>
+      <td>WezTerm-only split: vertical (top/bottom) / horizontal (left/right)</td>
+    </tr>
+    <tr>
+      <td>WezTerm / herdr</td>
+      <td><code>Ctrl+Shift+Arrow</code></td>
+      <td>herdr directional split when herdr is in the pane; otherwise WezTerm <code>SplitPane</code></td>
+    </tr>
+    <tr>
+      <td>WezTerm / herdr</td>
       <td><code>Alt+LeftArrow</code> / <code>Alt+RightArrow</code></td>
-      <td>Activate previous / next tab</td>
+      <td>Previous / next tab (herdr if present, otherwise WezTerm)</td>
     </tr>
     <tr>
-      <td>WezTerm</td>
+      <td>WezTerm / herdr</td>
       <td><code>Alt+Shift+Arrow</code></td>
-      <td>Activate pane by direction</td>
+      <td>Focus pane by direction (herdr if present, otherwise WezTerm)</td>
+    </tr>
+    <tr>
+      <td>herdr</td>
+      <td><code>Ctrl+s</code> then <code>h/j/k/l</code>, <code>p/n</code>, <code>x</code>, <code>c</code></td>
+      <td>Prefix: focus pane, prev/next tab, close pane, new tab</td>
+    </tr>
+    <tr>
+      <td>herdr</td>
+      <td><code>Alt+Up</code> / <code>Alt+Down</code></td>
+      <td>Previous / next workspace</td>
     </tr>
     <tr>
       <td>WezTerm</td>
@@ -342,6 +376,7 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
   <tbody>
     <tr><td>Alias</td><td><code>vi</code></td><td><code>nvim</code></td></tr>
     <tr><td>Alias</td><td><code>vim</code></td><td><code>nvim</code></td></tr>
+    <tr><td>Alias</td><td><code>fe</code></td><td><code>fresh</code></td></tr>
     <tr><td>Alias</td><td><code>py</code></td><td><code>python</code></td></tr>
     <tr><td>Alias</td><td><code>g</code></td><td><code>git</code></td></tr>
     <tr><td>Alias</td><td><code>c</code></td><td><code>zoxide</code></td></tr>

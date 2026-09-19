@@ -1,0 +1,61 @@
+onboarding = false
+
+[theme]
+name = "catppuccin"
+auto_switch = false
+
+[keys]
+prefix = "ctrl+s"
+previous_workspace = "alt+up"
+next_workspace = "alt+down"
+split_vertical = "prefix+v"
+split_horizontal = "prefix+minus"
+focus_pane_left = ["prefix+h", "alt+shift+left"]
+focus_pane_down = ["prefix+j", "alt+shift+down"]
+focus_pane_up = ["prefix+k", "alt+shift+up"]
+focus_pane_right = ["prefix+l", "alt+shift+right"]
+previous_tab = ["prefix+p", "alt+left"]
+next_tab = ["prefix+n", "alt+right"]
+close_pane = ["prefix+x", "alt+w"]
+new_tab = ["prefix+c", "alt+t"]
+
+# 方向分屏：herdr 的 split 动作只支持 right/down（CLI --direction 同样），
+# left/up 用「反向 split + swap」合成，已在临时 workspace 实测：
+# swap --pane <锚点> --direction right 把锚点换到右侧，新面板落到左侧；
+# 焦点随 --focus 落在新面板并跟随 swap 移动。锚点取按键时刻的活动面板。
+#
+# Windows 下命令串原样交给 cmd.exe /d /c。cmd 的规则：串以引号开头且引号
+# 不止两个时，会剥掉首尾各一个引号——两条命令用 && 串起来共四个引号，剥完后
+# && 落进引号内部失效，整串变成一次带垃圾参数的调用（"filename syntax is
+# incorrect"），按键看起来"无效"。所以链式命令外层必须再包一对引号让 cmd 剥。
+# 单命令只有两个引号，剥掉后路径无空格照样能跑，右/下因此一直正常。
+[[keys.command]]
+key = "ctrl+shift+right"
+type = "shell"
+command = '"%HERDR_BIN_PATH%" pane split --pane %HERDR_ACTIVE_PANE_ID% --direction right --focus'
+description = "split right"
+
+[[keys.command]]
+key = "ctrl+shift+down"
+type = "shell"
+command = '"%HERDR_BIN_PATH%" pane split --pane %HERDR_ACTIVE_PANE_ID% --direction down --focus'
+description = "split down"
+
+[[keys.command]]
+key = "ctrl+shift+left"
+type = "shell"
+command = '""%HERDR_BIN_PATH%" pane split --pane %HERDR_ACTIVE_PANE_ID% --direction right --focus && "%HERDR_BIN_PATH%" pane swap --pane %HERDR_ACTIVE_PANE_ID% --direction right"'
+description = "split left"
+
+[[keys.command]]
+key = "ctrl+shift+up"
+type = "shell"
+command = '""%HERDR_BIN_PATH%" pane split --pane %HERDR_ACTIVE_PANE_ID% --direction down --focus && "%HERDR_BIN_PATH%" pane swap --pane %HERDR_ACTIVE_PANE_ID% --direction down"'
+description = "split up"
+
+[ui]
+status_indicators = "symbols"
+show_agent_labels_on_pane_borders = true
+
+[ui.toast]
+delivery = "terminal"

@@ -270,6 +270,14 @@ function New-ZellijConfigLink {
 
 Ensure-ScoopInstalled
 
+# Install aria2 first so subsequent Scoop downloads can use multi-connection transfer.
+Ensure-ScoopPackage -Name 'aria2' -InstalledAction $InstalledPackageAction
+scoop config aria2-enabled true | Out-Null
+scoop config aria2-warning-enabled false | Out-Null
+scoop config aria2-split 8 | Out-Null
+scoop config aria2-max-connection-per-server 8 | Out-Null
+scoop config aria2-min-split-size 1M | Out-Null
+
 Write-Host 'Updating Scoop buckets...' -ForegroundColor Cyan
 scoop update | Out-Null
 
@@ -280,6 +288,7 @@ $mainPackages = @(
     'fd',
     'ffmpeg',
     'fzf',
+    'fresh',
     'imagemagick',
     'jq',
     'less',
@@ -562,6 +571,8 @@ $zellijSource = Join-Path $RepoRoot 'zellij\config.kdl'
 $claudeSettingsSource = Join-Path $RepoRoot 'claude\settings.json'
 $claudeStatuslineSource = Join-Path $RepoRoot 'claude\statusline-command.sh'
 $omnirouteEnvExample = Join-Path $RepoRoot 'omniroute\.env.example'
+$herdrSource = Join-Path $RepoRoot 'herdr\config.toml'
+$ompAgentSource = Join-Path $RepoRoot 'omp\agent'
 
 $profileTarget5 = Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
 $profileTarget7 = Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
@@ -575,6 +586,9 @@ $claudeSettingsTarget = Join-Path $claudeDir 'settings.json'
 $claudeStatuslineTarget = Join-Path $claudeDir 'statusline-command.sh'
 $omnirouteDir = Join-Path $HOME '.omniroute'
 $omnirouteEnvTarget = Join-Path $omnirouteDir '.env'
+$herdrTarget = Join-Path $env:APPDATA 'herdr\config.toml'
+$ompAgentDir = Join-Path $HOME '.omp\agent'
+$ompExtensionsDir = Join-Path $ompAgentDir 'extensions'
 
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget5 -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget7 -Parent) | Out-Null
@@ -583,6 +597,8 @@ New-Item -ItemType Directory -Force -Path (Split-Path $yaziTarget -Parent) | Out
 New-Item -ItemType Directory -Force -Path (Split-Path $zellijTarget -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path $claudeDir | Out-Null
 New-Item -ItemType Directory -Force -Path $omnirouteDir | Out-Null
+New-Item -ItemType Directory -Force -Path (Split-Path $herdrTarget -Parent) | Out-Null
+New-Item -ItemType Directory -Force -Path $ompExtensionsDir | Out-Null
 
 New-ProfileLink -LinkPath $profileTarget5 -TargetPath $profileSource
 New-ProfileLink -LinkPath $profileTarget7 -TargetPath $profileSource
@@ -593,6 +609,11 @@ New-DirectoryLink -LinkPath $yaziTarget -TargetPath $yaziSource
 New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
 New-ConfigFileLink -LinkPath $claudeSettingsTarget -TargetPath $claudeSettingsSource
 New-ConfigFileLink -LinkPath $claudeStatuslineTarget -TargetPath $claudeStatuslineSource
+New-ConfigFileLink -LinkPath $herdrTarget -TargetPath $herdrSource
+New-ConfigFileLink -LinkPath (Join-Path $ompAgentDir 'config.yml') -TargetPath (Join-Path $ompAgentSource 'config.yml')
+New-ConfigFileLink -LinkPath (Join-Path $ompAgentDir 'models.yml') -TargetPath (Join-Path $ompAgentSource 'models.yml')
+New-ConfigFileLink -LinkPath (Join-Path $ompAgentDir 'read-cc-switch-codex-key.py') -TargetPath (Join-Path $ompAgentSource 'read-cc-switch-codex-key.py')
+New-ConfigFileLink -LinkPath (Join-Path $ompExtensionsDir 'codez-flex-tier.ts') -TargetPath (Join-Path $ompAgentSource 'extensions\codez-flex-tier.ts')
 
 # OmniRoute: seed .env only when missing (never overwrite local secrets)
 if (-not (Test-Path -LiteralPath $omnirouteEnvTarget)) {

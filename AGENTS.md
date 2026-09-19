@@ -30,6 +30,8 @@ Example: `.\scripts\bootstrap.ps1 -InstalledPackageAction Update`
 The bootstrap script creates symlinks from user config directories back to this repo:
 - PowerShell profile: `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` → `powershell/Microsoft.PowerShell_profile.ps1`
 - WezTerm config: `~/.config/wezterm` → `wezterm/` (`wezterm.lua` + `config/` + `events/`)
+- herdr: `%AppData%/herdr/config.toml` → `herdr/config.toml` (do not link session/log/sock)
+- OMP: `~/.omp/agent/{config.yml,models.yml,read-cc-switch-codex-key.py,extensions/codez-flex-tier.ts}` (do not link sessions, DBs, or herdr-owned plugin files)
 - Claude Code global: `~/.claude/settings.json` → `claude/settings.json` (routes through local OmniRoute)
 - Claude statusline: `~/.claude/statusline-command.sh` → `claude/statusline-command.sh`
 - OmniRoute: non-secret deploy docs in `omniroute/`; secrets stay in `~/.omniroute/.env` (seeded once from example)
