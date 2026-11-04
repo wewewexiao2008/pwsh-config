@@ -253,6 +253,43 @@ function New-ConfigFileLink {
     }
 }
 
+function Backup-LegacyOmpExtension {
+    param([Parameter(Mandatory = $true)][string]$AgentDir)
+
+    $extensionsDir = Join-Path $AgentDir 'extensions'
+    if (-not (Test-Path -LiteralPath $extensionsDir -PathType Container)) { return }
+
+    # Enumerate the directory so dangling symlinks are found as well.
+    $legacy = Get-ChildItem -LiteralPath $extensionsDir -Force -Filter 'codez-flex-tier.ts' |
+        Where-Object { $_.Name -ieq 'codez-flex-tier.ts' } |
+        Select-Object -First 1
+    if ($null -eq $legacy) { return }
+    if ($legacy.PSIsContainer) {
+        throw "Refusing to move '$($legacy.FullName)' because it is a directory, not a legacy extension file."
+    }
+
+    $backup = Join-Path $AgentDir ("codez-flex-tier.{0}.bak" -f [guid]::NewGuid().ToString('N'))
+    if ($legacy.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        # Preserve the target contents even if the moved link is relative or later breaks.
+        $contentsBackup = "$backup.contents"
+        try {
+            [System.IO.File]::Copy($legacy.FullName, $contentsBackup)
+            Write-Warning "Saved legacy OMP extension link target contents to: $contentsBackup"
+        } catch {
+            $cause = $_.Exception
+            while ($cause.InnerException) { $cause = $cause.InnerException }
+            if ($cause -isnot [System.IO.FileNotFoundException] -and
+                $cause -isnot [System.IO.DirectoryNotFoundException]) {
+                throw
+            }
+            Write-Warning "Legacy OMP extension link target is unavailable; preserving the link itself."
+        }
+    }
+
+    [System.IO.File]::Move($legacy.FullName, $backup)
+    Write-Warning "Moved legacy OMP extension outside discovery to: $backup"
+}
+
 function New-ZellijConfigLink {
     param(
         [Parameter(Mandatory = $true)][string]$LinkPath,
@@ -588,7 +625,6 @@ $omnirouteDir = Join-Path $HOME '.omniroute'
 $omnirouteEnvTarget = Join-Path $omnirouteDir '.env'
 $herdrTarget = Join-Path $env:APPDATA 'herdr\config.toml'
 $ompAgentDir = Join-Path $HOME '.omp\agent'
-$ompExtensionsDir = Join-Path $ompAgentDir 'extensions'
 
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget5 -Parent) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $profileTarget7 -Parent) | Out-Null
@@ -598,7 +634,6 @@ New-Item -ItemType Directory -Force -Path (Split-Path $zellijTarget -Parent) | O
 New-Item -ItemType Directory -Force -Path $claudeDir | Out-Null
 New-Item -ItemType Directory -Force -Path $omnirouteDir | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $herdrTarget -Parent) | Out-Null
-New-Item -ItemType Directory -Force -Path $ompExtensionsDir | Out-Null
 
 New-ProfileLink -LinkPath $profileTarget5 -TargetPath $profileSource
 New-ProfileLink -LinkPath $profileTarget7 -TargetPath $profileSource
@@ -610,10 +645,11 @@ New-ZellijConfigLink -LinkPath $zellijTarget -TargetPath $zellijSource
 New-ConfigFileLink -LinkPath $claudeSettingsTarget -TargetPath $claudeSettingsSource
 New-ConfigFileLink -LinkPath $claudeStatuslineTarget -TargetPath $claudeStatuslineSource
 New-ConfigFileLink -LinkPath $herdrTarget -TargetPath $herdrSource
+Backup-LegacyOmpExtension -AgentDir $ompAgentDir
 New-ConfigFileLink -LinkPath (Join-Path $ompAgentDir 'config.yml') -TargetPath (Join-Path $ompAgentSource 'config.yml')
 New-ConfigFileLink -LinkPath (Join-Path $ompAgentDir 'models.yml') -TargetPath (Join-Path $ompAgentSource 'models.yml')
 New-ConfigFileLink -LinkPath (Join-Path $ompAgentDir 'read-cc-switch-codex-key.py') -TargetPath (Join-Path $ompAgentSource 'read-cc-switch-codex-key.py')
-New-ConfigFileLink -LinkPath (Join-Path $ompExtensionsDir 'codez-flex-tier.ts') -TargetPath (Join-Path $ompAgentSource 'extensions\codez-flex-tier.ts')
+New-ConfigFileLink -LinkPath (Join-Path $ompAgentDir 'hooks\pre\terra-fast.ts') -TargetPath (Join-Path $ompAgentSource 'hooks\pre\terra-fast.ts')
 
 # OmniRoute: seed .env only when missing (never overwrite local secrets)
 if (-not (Test-Path -LiteralPath $omnirouteEnvTarget)) {

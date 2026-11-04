@@ -1,13 +1,18 @@
 modelRoles:
-  default: zai/glm-5.3:max
-  slow: openai-codex/gpt-6-astra
-  vision: kimi-code/k3-256k:max
-  plan: cursor/claude-fable-5-1-xhigh:auto
-  commit: cursor/cursor-grok-4.6-fast:xhigh
-  task: cursor/cursor-grok-4.6-fast:xhigh
-  smol: cursor/cursor-grok-4.6-fast:xhigh
-  advisor: zai/glm-5.3-flash:auto
-  tiny: cursor/cursor-grok-4.6-fast:xhigh
+  task: openai-codex/gpt-6.1-terra:max
+  slow: openai-codex/gpt-6-astra:xhigh
+  plan: cursor/claude-opus-5-5-fast:max
+  vision: cursor/gemini-4-argon:high
+  smol: openai-codex/gpt-6.1-terra:max
+  commit: zhipu-coding-plan/glm-5.3-flash:max
+  advisor: anthropic/claude-opus-5-5:auto
+  memory: anthropic/claude-opus-5-5:auto
+  default: anthropic/claude-opus-5-5:high
+  tiny: anthropic/claude-sonnet-5-5:max
+modelProviderOrder:
+  - deepseek-code28
+  - deepseek
+defaultThinkingLevel: auto
 setupVersion: 2
 theme:
   dark: dark-catppuccin
@@ -27,7 +32,7 @@ display:
   cacheMissMarker: true
   hideToolActivity: true
 advisor:
-  enabled: true
+  enabled: false
   syncBacklog: "1"
 prewalk:
   enabled: false
@@ -47,30 +52,41 @@ github:
   enabled: true
 hideThinkingBlock: true
 tier:
-  openai: none
-  google: none
+  openai: priority
+  google: priority
   subagent: inherit
   advisor: inherit
+providers:
+  fireworksTier: priority
 cycleOrder:
-  - smol
   - default
   - slow
+  - smol
+  - tiny
   - vision
 retry:
   fallbackChains:
+    task:
+      - anthropic/claude-sonnet-5-5:max
+      - deepseek-code28/deepseek-flash
+      - deepseek-tiantian/deepseek-v4.1-flash
+      - deepseek/deepseek-flash
+      - devin/gpt-6-1-terra-fast
+    smol:
+      - anthropic/claude-sonnet-5-5:max
+      - deepseek-tiantian/deepseek-v4.1-flash:max
+      - deepseek/deepseek-flash
+    tiny:
+      - deepseek-code28/deepseek-flash:max
+      - deepseek-tiantian/deepseek-v4.1-flash:max
+      - deepseek/deepseek-flash:max
     slow:
-      - devin/gpt-6-astra
       - codez/gpt-6-astra
     default:
-      - zhipu-coding-plan/glm-5.3
-      - devin/glm-5-3-1m
-    advisor:
-      - zhipu-coding-plan/glm-5.3-flash
-    smol:
-      - devin/grok-4-6
-      - xai-oauth/grok-4.6
-    vision:
-      - devin/kimi-k3
+      - cursor/claude-opus-5-5-fast
+      - kimi-code/k3.1-pro-highspeed
+    commit:
+      - zai/glm-5.3-flash
 browser:
   headless: true
 dev:

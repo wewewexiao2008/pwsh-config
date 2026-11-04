@@ -5,7 +5,7 @@ Personal PowerShell-centered terminal configuration for Windows.
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
 - `wezterm/` - WezTerm configuration (`wezterm.lua` + `config/` + `events/`)
 - `herdr/config.toml` - Windows herdr keys/theme (live path is `%AppData%/herdr/config.toml`)
-- `omp/agent/` - OMP `config.yml`, `models.yml`, Codez key helper, and the codez-flex extension
+- `omp/agent/` - OMP `config.yml`, `models.yml`, Codez key helper, and the Terra Fast hook
 - `claude/` - Claude Code global settings (non-secret) + statusline script
 - `omniroute/` - OmniRoute deploy notes + provider manifest (no API keys)
 - `nvim/` - Neovim configuration (LazyVim)
@@ -35,7 +35,7 @@ The bootstrap script installs `aria2` and enables Scoop multi-connection downloa
 - `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` (PowerShell 7)
 - `~/.config/wezterm` → `wezterm/` (modular config; removes legacy `~/.wezterm.lua` if it pointed at this repo)
 - `%AppData%/herdr/config.toml` → `herdr/config.toml` (session/log/sock stay unmanaged). File symlinks need Developer Mode or admin; otherwise bootstrap copies the file.
-- `~/.omp/agent/{config.yml,models.yml,read-cc-switch-codex-key.py}` and `extensions/codez-flex-tier.ts` (sessions, DBs, and herdr-owned plugin files stay unmanaged). Same symlink-or-copy rule.
+- `~/.omp/agent/{config.yml,models.yml,read-cc-switch-codex-key.py}` and `hooks/pre/terra-fast.ts` (sessions, DBs, and herdr-owned plugin files stay unmanaged). Same symlink-or-copy rule.
 - `~/.claude/settings.json` → `claude/settings.json`
 - `~/.claude/statusline-command.sh` → `claude/statusline-command.sh`
 - seeds `~/.omniroute/.env` from `omniroute/.env.example` only when missing; installs `omniroute` via npm if absent
@@ -61,6 +61,44 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Update
 E:\github\pwsh-config\scripts\bootstrap.ps1 -InstalledPackageAction Reinstall
 E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
 ```
+
+## OMP model routing
+
+The model roles and fallback chains follow the Mac configuration. `task` and
+`smol` use Codex GPT-6.1 Terra at `max`; the Terra-only request hook pins
+`service_tier: priority`. The configured OpenAI and Google family tiers are
+also `priority`, so the setting is not limited to Terra. The config retains
+the Mac's Fireworks priority preference. Sonnet 5.5 is the first fallback
+before DeepSeek; `tiny` uses Sonnet 5.5, then code28, Tiantian, and official
+DeepSeek. `plan` uses Cursor Opus 5.5 Fast at `max`. Advisor is disabled.
+
+The Windows Codez endpoint, model catalog, and CC Switch key helper remain
+Windows-specific. Codez no longer has a forced Flex tier. Bootstrap archives the
+previous managed `codez-flex-tier.ts` as
+`~/.omp/agent/codez-flex-tier.<id>.bak`, outside extension discovery, before
+installing the Terra hook. Restart existing OMP processes after deployment so
+they unload the old extension and load the new hook.
+
+The code28 and Tiantian provider keys are read from user environment variables,
+not from this repository. A Bun command (installed by bootstrap) returns an
+empty credential when the variable is missing instead of sending its name as
+the token. On Windows, enter the keys without echoing them to the terminal:
+
+```powershell
+foreach ($name in 'CODE28_API_KEY', 'TIANTIAN_API_KEY') {
+    $value = [System.Net.NetworkCredential]::new('', (Read-Host $name -AsSecureString)).Password
+    [Environment]::SetEnvironmentVariable($name, $value, 'User')
+    [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+}
+Remove-Variable value
+```
+
+User environment variables are stored in the Windows user profile, not
+encrypted by this repository. New OMP processes must inherit them; fully
+restart the terminal if its parent process has an older environment. The
+optional `cc-switch-zhipu-glm-en` and `cc-switch-kimi-for-coding` providers
+similarly read `ZAI_API_KEY` and `KIMI_API_KEY`. Other authenticated providers
+use their existing OMP credentials.
 
 ## Tools
 
