@@ -1,9 +1,26 @@
 # Custom providers. Codez is mirrored from CC Switch.
-# Active base URL matches ~/.codex/config.toml.
+# Codez's active base URL matches ~/.codex/config.toml.
 # Alternatives: https://api-cfmax.codezsy.com/v1
 #               https://api-sss.zwenooo.link/v1
-# API key is read from CC Switch, not stored here.
+# The Codez API key is read from CC Switch, not stored here.
 providers:
+  onliqiu:
+    baseUrl: https://onliqiu.com/v1
+    api: openai-responses
+    apiKey: "!bun -e \"process.stdout.write(process.env.ONLIQIU_API_KEY || '')\""
+    models:
+      - id: gpt-6-astra
+        name: GPT-6 Astra (Onliqiu)
+        reasoning: true
+        thinking:
+          mode: effort
+          efforts: [low, medium, high, xhigh, max]
+          defaultLevel: medium
+        input: [text, image]
+        contextWindow: 1050000
+        maxTokens: 128000
+        supportsTools: true
+
   codez:
     baseUrl: https://api-vps.codezsy.com/v1
     api: openai-responses
@@ -194,137 +211,3 @@ providers:
           output: 6
           cacheRead: 0.3
           cacheWrite: 0
-
-  cc-switch-zhipu-glm-en:
-    baseUrl: https://api.z.ai/api/coding/paas/v4
-    api: openai-completions
-    apiKey: ZAI_API_KEY
-    models:
-      - id: glm-5.3
-        name: GLM-5.3
-        reasoning: true
-        input: [text]
-        contextWindow: 1000000
-      - id: glm-5.3-flash
-        name: glm-5.3-flash
-        reasoning: true
-        input: [text]
-        contextWindow: 1000000
-
-  cc-switch-kimi-for-coding:
-    baseUrl: https://api.kimi.com/coding
-    api: anthropic-messages
-    apiKey: KIMI_API_KEY
-    models:
-      - id: k3
-        name: k3
-        reasoning: true
-        input: [text, image]
-        contextWindow: 1000000
-      - id: k3-256k
-        name: k3-256k
-        reasoning: true
-        input: [text, image]
-        contextWindow: 256000
-      - id: kimi-for-coding-highspeed
-        name: kimi-for-coding-highspeed
-        reasoning: true
-        input: [text, image]
-        contextWindow: 256000
-      - id: kimi-for-coding
-        name: kimi-for-coding
-        reasoning: true
-        input: [text, image]
-        contextWindow: 256000
-
-  deepseek-code28:
-    baseUrl: https://code28.ccwu.cc/v1
-    api: openai-completions
-    apiKey: "!bun -e \"process.stdout.write(process.env.CODE28_API_KEY || '')\""
-    models:
-      - id: deepseek-flash
-        name: DeepSeek V4.1 Flash (code28)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text, image]
-        contextWindow: 1000000
-        maxTokens: 384000
-      - id: deepseek-v4.1-flash
-        name: DeepSeek V4.1 Flash alias (code28)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text, image]
-        contextWindow: 1000000
-        maxTokens: 384000
-      - id: deepseek-v4-flash
-        name: DeepSeek V4 Flash (code28)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text, image]
-        contextWindow: 1000000
-        maxTokens: 393216
-      - id: deepseek-v4-flash-0731
-        name: DeepSeek V4 Flash 0731 (code28)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text, image]
-        contextWindow: 1000000
-        maxTokens: 393216
-      - id: deepseek-v4-pro
-        name: DeepSeek V4 Pro (code28)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text]
-        contextWindow: 1000000
-        maxTokens: 393216
-      - id: deepseek-v4-pro-0813
-        name: DeepSeek V4 Pro 0813 (code28)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text]
-        contextWindow: 1000000
-        maxTokens: 393216
-
-  deepseek-tiantian:
-    baseUrl: https://apitiantian.com/v1
-    api: openai-completions
-    apiKey: "!bun -e \"process.stdout.write(process.env.TIANTIAN_API_KEY || '')\""
-    models:
-      - id: deepseek-v4.1-flash
-        name: DeepSeek V4.1 Flash (tiantian)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text, image]
-        contextWindow: 1000000
-        maxTokens: 384000
-      - id: deepseek-v4-flash
-        name: DeepSeek V4 Flash (tiantian)
-        reasoning: true
-        thinking:
-          mode: effort
-          efforts: [low, high, max]
-          defaultLevel: max
-        input: [text, image]
-        contextWindow: 1000000
-        maxTokens: 393216

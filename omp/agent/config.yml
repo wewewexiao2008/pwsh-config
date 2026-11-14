@@ -1,19 +1,16 @@
 modelRoles:
   task: openai-codex/gpt-6.1-terra:max
   slow: openai-codex/gpt-6-astra:xhigh
-  plan: cursor/claude-opus-5-5-fast:max
+  plan: openai-codex/gpt-6-astra:xhigh
   vision: cursor/gemini-4-argon:high
   smol: openai-codex/gpt-6.1-terra:max
   commit: zhipu-coding-plan/glm-5.3-flash:max
-  advisor: anthropic/claude-opus-5-5:auto
-  memory: anthropic/claude-opus-5-5:auto
-  default: anthropic/claude-opus-5-5:high
-  tiny: anthropic/claude-sonnet-5-5:max
-modelProviderOrder:
-  - deepseek-code28
-  - deepseek
+  advisor: cursor/gemini-4-carbon:high
+  memory: cursor/gemini-4-carbon:high
+  default: cursor/gemini-4-carbon:medium
+  tiny: cursor/gemini-4-carbon:high
 defaultThinkingLevel: auto
-setupVersion: 2
+setupVersion: 3
 theme:
   dark: dark-catppuccin
   light: light
@@ -23,6 +20,7 @@ statusLine:
   separator: powerline-thin
   contextLine: embedded
   transparent: false
+  compactThinkingLevel: false
 tui:
   textSizing: false
   tight: false
@@ -56,6 +54,8 @@ tier:
   google: priority
   subagent: inherit
   advisor: inherit
+disabledProviders:
+  - anthropic
 providers:
   fireworksTier: priority
 cycleOrder:
@@ -67,27 +67,35 @@ cycleOrder:
 retry:
   fallbackChains:
     task:
-      - anthropic/claude-sonnet-5-5:max
-      - deepseek-code28/deepseek-flash
-      - deepseek-tiantian/deepseek-v4.1-flash
+      - onliqiu/gpt-6-astra:xhigh
+      - cursor/gemini-4-carbon:high
       - deepseek/deepseek-flash
-      - devin/gpt-6-1-terra-fast
     smol:
-      - anthropic/claude-sonnet-5-5:max
-      - deepseek-tiantian/deepseek-v4.1-flash:max
+      - onliqiu/gpt-6-astra:xhigh
+      - cursor/gemini-4-carbon:high
       - deepseek/deepseek-flash
     tiny:
-      - deepseek-code28/deepseek-flash:max
-      - deepseek-tiantian/deepseek-v4.1-flash:max
       - deepseek/deepseek-flash:max
+      - zhipu-coding-plan/glm-5.3-flash:max
     slow:
+      - onliqiu/gpt-6-astra:xhigh
       - codez/gpt-6-astra
+    plan:
+      - onliqiu/gpt-6-astra:xhigh
+      - codez/gpt-6-astra:xhigh
+      - openai-codex/gpt-6.1-terra:high
+      - deepseek/deepseek-flash
     default:
-      - cursor/claude-opus-5-5-fast
-      - kimi-code/k3.1-pro-highspeed
+      - openai-codex/gpt-6-astra:xhigh
+      - onliqiu/gpt-6-astra:xhigh
+      - codez/gpt-6-astra:xhigh
+      - openai-codex/gpt-6.1-terra:high
+      - deepseek/deepseek-flash
     commit:
       - zai/glm-5.3-flash
 browser:
   headless: true
 dev:
   autoqaConsent: granted
+update:
+  auto: true

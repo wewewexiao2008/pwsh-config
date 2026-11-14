@@ -31,7 +31,7 @@ The bootstrap script creates symlinks from user config directories back to this 
 - PowerShell profile: `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` → `powershell/Microsoft.PowerShell_profile.ps1`
 - WezTerm config: `~/.config/wezterm` → `wezterm/` (`wezterm.lua` + `config/` + `events/`)
 - herdr: `%AppData%/herdr/config.toml` → `herdr/config.toml` (do not link session/log/sock)
-- OMP: `~/.omp/agent/{config.yml,models.yml,read-cc-switch-codex-key.py,hooks/pre/terra-fast.ts}` (do not link sessions, DBs, or herdr-owned plugin files). Bootstrap archives the obsolete `extensions/codez-flex-tier.ts`; Codez no longer forces Flex. OpenAI/Google tiers are `priority`; the Terra hook independently pins priority for `openai-codex/gpt-6.1-terra`. Relay keys are supplied by the user environment as `CODE28_API_KEY` and `TIANTIAN_API_KEY`.
+- OMP: `~/.omp/agent/{config.yml,models.yml,read-cc-switch-codex-key.py,hooks/pre/terra-fast.ts}` (do not link sessions, DBs, or herdr-owned plugin files). Bootstrap archives the obsolete `extensions/codez-flex-tier.ts`; Codez no longer forces Flex. OpenAI/Google tiers are `priority`; the Terra hook independently pins priority for `openai-codex/gpt-6.1-terra`. The Onliqiu key is supplied by the user environment as `ONLIQIU_API_KEY`.
 - Claude Code global: `~/.claude/settings.json` → `claude/settings.json` (routes through local OmniRoute)
 - Claude statusline: `~/.claude/statusline-command.sh` → `claude/statusline-command.sh`
 - OmniRoute: non-secret deploy docs in `omniroute/`; secrets stay in `~/.omniroute/.env` (seeded once from example)

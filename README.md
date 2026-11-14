@@ -64,13 +64,33 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
 
 ## OMP model routing
 
-The model roles and fallback chains follow the Mac configuration. `task` and
-`smol` use Codex GPT-6.1 Terra at `max`; the Terra-only request hook pins
-`service_tier: priority`. The configured OpenAI and Google family tiers are
-also `priority`, so the setting is not limited to Terra. The config retains
-the Mac's Fireworks priority preference. Sonnet 5.5 is the first fallback
-before DeepSeek; `tiny` uses Sonnet 5.5, then code28, Tiantian, and official
-DeepSeek. `plan` uses Cursor Opus 5.5 Fast at `max`. Advisor is disabled.
+`default` uses Cursor Gemini 4 Carbon at `medium`; `advisor`, `memory`, and
+`tiny` use it at `high`.
+`plan` and `slow` use Codex GPT-6 Astra at `xhigh`; `task` and `smol` use Codex
+GPT-6.1 Terra at `max`; `vision` uses Cursor Gemini 4 Argon at `high`; and
+`commit` uses Zhipu GLM-5.3 Flash. Advisor is disabled.
+
+The Anthropic model provider is disabled, and no Claude models are assigned to
+roles or fallback chains. Cursor can still list Claude models in its own catalog.
+
+`task` and `smol` fall back to Onliqiu Astra, Cursor Gemini 4 Carbon, then
+DeepSeek Flash. `plan` falls back to Onliqiu Astra, Codez Astra, Codex Terra,
+then DeepSeek Flash; `slow` falls back to Onliqiu Astra, then Codez Astra.
+`default` falls back to Codex Astra, Onliqiu Astra, Codez Astra, Codex Terra,
+then DeepSeek Flash. `tiny` falls back to DeepSeek Flash, then Zhipu GLM-5.3
+Flash. The tested Onliqiu account rejected GPT-6.1 Terra, so only Astra is
+configured there.
+
+The Terra-only request hook pins `service_tier: priority`; the configured OpenAI
+and Google family tiers are also `priority`. The config retains the Fireworks
+priority preference.
+
+Existing sessions do not switch their active model on reload; restart OMP and
+start a new session to use the new default.
+
+Cursor account selection is automatic. When more than one Cursor credential is
+stored, disable the Free account if it rejects Gemini so requests use the paid
+account.
 
 The Windows Codez endpoint, model catalog, and CC Switch key helper remain
 Windows-specific. Codez no longer has a forced Flex tier. Bootstrap archives the
@@ -79,26 +99,23 @@ previous managed `codez-flex-tier.ts` as
 installing the Terra hook. Restart existing OMP processes after deployment so
 they unload the old extension and load the new hook.
 
-The code28 and Tiantian provider keys are read from user environment variables,
-not from this repository. A Bun command (installed by bootstrap) returns an
-empty credential when the variable is missing instead of sending its name as
-the token. On Windows, enter the keys without echoing them to the terminal:
+The Onliqiu provider key is read from the user environment, not this repository.
+A Bun command (installed by bootstrap) returns an empty credential when the
+variable is missing instead of sending its name as the token. On Windows, enter
+the key without echoing it to the terminal:
 
 ```powershell
-foreach ($name in 'CODE28_API_KEY', 'TIANTIAN_API_KEY') {
-    $value = [System.Net.NetworkCredential]::new('', (Read-Host $name -AsSecureString)).Password
-    [Environment]::SetEnvironmentVariable($name, $value, 'User')
-    [Environment]::SetEnvironmentVariable($name, $value, 'Process')
-}
-Remove-Variable value
+$name = 'ONLIQIU_API_KEY'
+$value = [System.Net.NetworkCredential]::new('', (Read-Host $name -AsSecureString)).Password
+[Environment]::SetEnvironmentVariable($name, $value, 'User')
+[Environment]::SetEnvironmentVariable($name, $value, 'Process')
+Remove-Variable name, value
 ```
 
 User environment variables are stored in the Windows user profile, not
 encrypted by this repository. New OMP processes must inherit them; fully
-restart the terminal if its parent process has an older environment. The
-optional `cc-switch-zhipu-glm-en` and `cc-switch-kimi-for-coding` providers
-similarly read `ZAI_API_KEY` and `KIMI_API_KEY`. Other authenticated providers
-use their existing OMP credentials.
+restart the terminal if its parent process has an older environment. Other
+authenticated providers use their existing OMP credentials.
 
 ## Tools
 
