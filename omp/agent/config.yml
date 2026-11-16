@@ -54,8 +54,6 @@ tier:
   google: priority
   subagent: inherit
   advisor: inherit
-disabledProviders:
-  - anthropic
 providers:
   fireworksTier: priority
 cycleOrder:

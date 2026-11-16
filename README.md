@@ -1,5 +1,7 @@
 # pwsh-config
 Personal PowerShell-centered terminal configuration for Windows.
+The Anthropic model provider is enabled, but no Claude models are currently
+assigned to roles or fallback chains.
 
 ## Structure
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
