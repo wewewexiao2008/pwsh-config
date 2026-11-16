@@ -1,7 +1,5 @@
 # pwsh-config
 Personal PowerShell-centered terminal configuration for Windows.
-The Anthropic model provider is enabled, but no Claude models are currently
-assigned to roles or fallback chains.
 
 ## Structure
 - `powershell/Microsoft.PowerShell_profile.ps1` - PowerShell profile
@@ -72,8 +70,8 @@ E:\github\pwsh-config\scripts\bootstrap.ps1 -InstallDevelopmentToolchain
 GPT-6.1 Terra at `max`; `vision` uses Cursor Gemini 4 Argon at `high`; and
 `commit` uses Zhipu GLM-5.3 Flash. Advisor is disabled.
 
-The Anthropic model provider is disabled, and no Claude models are assigned to
-roles or fallback chains. Cursor can still list Claude models in its own catalog.
+The Anthropic model provider is enabled, but no Claude models are currently
+assigned to roles or fallback chains.
 
 `task` and `smol` fall back to Onliqiu Astra, Cursor Gemini 4 Carbon, then
 DeepSeek Flash. `plan` falls back to Onliqiu Astra, Codez Astra, Codex Terra,
