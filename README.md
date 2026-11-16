@@ -29,7 +29,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\bootstrap.ps1
 ```
 
-The bootstrap script installs `aria2` and enables Scoop multi-connection downloads, updates Scoop buckets, installs the required packages (including PowerShell 7 via `pwsh`, `zellij` from Scoop main, and `wezterm-nightly` from the Scoop `versions` bucket), then links:
+The bootstrap script installs `aria2` and enables Scoop multi-connection downloads, updates Scoop buckets, installs the required packages (including PowerShell 7 via `pwsh`, `zellij` from Scoop main, and `wezterm-nightly` from the Scoop `versions` bucket) and the PSFzf module for both PowerShell editions, then links:
 
 - `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
 - `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1` (PowerShell 7)
@@ -44,6 +44,8 @@ The bootstrap script installs `aria2` and enables Scoop multi-connection downloa
 - `%AppData%/Zellij/config/config.kdl`
 
 back to this repository.
+
+Tab completion loads PSFzf on first use. If PSFzf or `fzf` is unavailable, Tab keeps PSReadLine's normal completion.
 
 If a package is already installed, bootstrap can:
 - skip updates and print a reminder (default): `-InstalledPackageAction Prompt`
@@ -143,7 +145,7 @@ authenticated providers use their existing OMP credentials.
     </tr>
     <tr>
       <td>fzf</td>
-      <td>Fuzzy finder for history, file insert, and directory jump.</td>
+      <td>Fuzzy finder for Tab completion, history, file insert, and directory jump.</td>
       <td><a href="https://github.com/junegunn/fzf">GitHub</a></td>
     </tr>
     <tr>
@@ -369,6 +371,11 @@ authenticated providers use their existing OMP credentials.
       <td>WezTerm</td>
       <td><code>Alt+Backspace</code></td>
       <td>Clear the current input using Ctrl+a then Ctrl+k</td>
+    </tr>
+    <tr>
+      <td>Shell</td>
+      <td><code>Tab</code></td>
+      <td>fzf completion via PSFzf</td>
     </tr>
     <tr>
       <td>Shell</td>

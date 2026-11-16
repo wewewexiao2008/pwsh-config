@@ -388,6 +388,25 @@ if ($alreadyInstalled.Count -gt 0) {
     }
 }
 
+# Check each edition with its default module path; their user module directories differ.
+$previousPSModulePath = $env:PSModulePath
+try {
+    $env:PSModulePath = $null
+    foreach ($powerShell in @('powershell.exe', 'pwsh.exe')) {
+        & $powerShell -NoLogo -NoProfile -NonInteractive -Command {
+            $ErrorActionPreference = 'Stop'
+            if (-not (Get-Module -ListAvailable -Name PSFzf | Where-Object { $_.Version -ge [version]'2.7.10' })) {
+                Install-Module -Name PSFzf -MinimumVersion '2.7.10' -Scope CurrentUser -Repository PSGGallery -Force
+            }
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to install PSFzf for $powerShell."
+        }
+    }
+} finally {
+    $env:PSModulePath = $previousPSModulePath
+}
+
 # Handle lazygit and neovide separately (from extras bucket)
 Ensure-ScoopPackage -Name 'lazygit' -Bucket 'extras' -FallbackManifestUrl 'https://raw.githubusercontent.com/ScoopInstaller/Extras/master/bucket/lazygit.json' -InstalledAction $InstalledPackageAction
 

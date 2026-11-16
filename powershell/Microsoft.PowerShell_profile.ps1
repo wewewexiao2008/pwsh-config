@@ -170,6 +170,15 @@ if (Get-Module -ListAvailable -Name PSReadLine) {
     Set-PSReadLineKeyHandler -Chord 'Ctrl+Backspace' -Function BackwardDeleteWord
     Set-PSReadLineKeyHandler -Chord 'Ctrl+Delete'    -Function DeleteWord
 
+    if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvailable -Name PSFzf)) {
+        Set-PSReadLineKeyHandler -Key Tab -BriefDescription 'fzf completion' -ScriptBlock {
+            if (-not (Get-Module -Name PSFzf)) {
+                Import-Module PSFzf -Global -ErrorAction Stop
+            }
+            PSFzf\Invoke-FzfTabCompletion
+        }
+    }
+
     Set-PSReadLineKeyHandler -Chord 'Ctrl+r' -BriefDescription 'fzf history' -ScriptBlock {
         $line = $null
         $cursor = $null
