@@ -396,7 +396,7 @@ try {
         & $powerShell -NoLogo -NoProfile -NonInteractive -Command {
             $ErrorActionPreference = 'Stop'
             if (-not (Get-Module -ListAvailable -Name PSFzf | Where-Object { $_.Version -ge [version]'2.7.10' })) {
-                Install-Module -Name PSFzf -MinimumVersion '2.7.10' -Scope CurrentUser -Repository PSGGallery -Force
+                Install-Module -Name PSFzf -MinimumVersion '2.7.10' -Scope CurrentUser -Repository PSGallery -Force
             }
         }
         if ($LASTEXITCODE -ne 0) {
